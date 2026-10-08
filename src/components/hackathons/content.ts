@@ -2,8 +2,6 @@ import { ARENA } from "@/lib/site"
 
 /** Copy for /hackathons. Facts only from the Lumora Arena brief in SPEC.md. */
 
-export const SEASONS = ["Winter", "Spring", "Summer", "Monsoon", "Autumn"] as const
-
 export const FORMATS = [
   {
     id: "team",

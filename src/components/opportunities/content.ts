@@ -34,25 +34,16 @@ export const steps = [
   {
     verb: "Match",
     short: "Matched with a mentor",
-    body: "Get matched with a mentor who reviews your pull requests and gives you written feedback at the end.",
+    body: "Get matched with a mentor who works with you until you finish.",
   },
   {
     verb: "Build",
     short: "Real projects, weekly sessions",
-    body: "Work on real projects on production codebases, with a mentor session every week.",
+    body: "Start on your projects, with a mentor session every week.",
   },
   {
     verb: "Finish",
     short: "A job-ready portfolio",
-    body: "Leave with a job-ready portfolio of projects, verified achievements and certificates.",
+    body: "Leave with a job-ready portfolio.",
   },
-]
-
-// The internship paths listed on careers.lumoraspace.in, with the tools each one lists.
-// Careers shows more domains than these, so copy must not present this as the full list or count it.
-export const tracks = [
-  { name: "Frontend", focus: ["React", "Next.js", "TypeScript", "Tailwind"] },
-  { name: "Backend", focus: ["Node.js", "PostgreSQL", "Redis", "GraphQL"] },
-  { name: "AI engineering", focus: ["Python", "LangChain", "OpenAI", "Vector DBs"] },
-  { name: "UI/UX design", focus: ["Figma", "Design systems", "Prototyping", "User research"] },
 ]

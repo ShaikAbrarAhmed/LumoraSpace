@@ -75,7 +75,6 @@ export function HowItWorks() {
             <SectionHeading
               eyebrow="How it works"
               title="What happens when you apply."
-              lead="A mentor works with you from the day you are matched until you finish."
             />
           </div>
         </div>

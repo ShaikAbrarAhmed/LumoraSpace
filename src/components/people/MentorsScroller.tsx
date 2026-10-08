@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react"
 import Image from "next/image"
-import { motion, useMotionValue, useMotionValueEvent, useScroll } from "framer-motion"
+import { motion } from "framer-motion"
 import type { Mentor } from "@/data/people"
 import { usePrefersReducedMotion } from "@/components/ui/use-prefers-reduced-motion"
 import { cn } from "@/lib/utils"
@@ -11,28 +11,32 @@ import { ExpertiseTags, LinkedInLink, PersonQuote, photoFrame } from "./PersonPa
 // Portrait column: a thumbnail beside the name below lg, 42% of the card from lg.
 const CARD_SIZES = "(min-width: 1024px) 22vw, (min-width: 640px) 160px, 112px"
 
+/** How long each mentor stays in view before the row moves on. */
+const ROTATE_MS = 5000
+
 /**
- * Mentors side by side in one row. The row pins to the screen and slides sideways as the page
- * scrolls, so each mentor comes into view in turn. Under reduced motion nothing pins: the row
- * becomes an ordinary horizontal scroller.
+ * Mentors side by side in one row. The row slides to the next mentor every five seconds and
+ * starts again after the last one. It waits while the pointer or keyboard focus is on the row.
+ * Under reduced motion nothing moves by itself: the row becomes an ordinary horizontal scroller.
  */
 export function MentorsScroller({ mentors, lead }: { mentors: Mentor[]; lead: string }) {
-  const sectionRef = useRef<HTMLElement>(null)
   const viewportRef = useRef<HTMLDivElement>(null)
   const trackRef = useRef<HTMLOListElement>(null)
   const reduce = usePrefersReducedMotion()
-  // How far the row has to travel for the last card to reach the right edge.
-  const [travel, setTravel] = useState(0)
+  // How far the row sits to the left for each mentor, capped so the last card stops at the right edge.
+  const [offsets, setOffsets] = useState<number[]>([])
   const [active, setActive] = useState(0)
-
-  const { scrollYProgress } = useScroll({ target: sectionRef, offset: ["start start", "end end"] })
-  const x = useMotionValue(0)
+  const [paused, setPaused] = useState(false)
 
   useEffect(() => {
     const viewport = viewportRef.current
     const track = trackRef.current
     if (!viewport || !track) return
-    const measure = () => setTravel(Math.max(0, track.scrollWidth - viewport.clientWidth))
+    const measure = () => {
+      const travel = Math.max(0, track.scrollWidth - viewport.clientWidth)
+      const cards = Array.from(track.children) as HTMLElement[]
+      setOffsets(cards.map((card) => Math.min(travel, card.offsetLeft - cards[0].offsetLeft)))
+    }
     measure()
     const observer = new ResizeObserver(measure)
     observer.observe(viewport)
@@ -40,59 +44,39 @@ export function MentorsScroller({ mentors, lead }: { mentors: Mentor[]; lead: st
     return () => observer.disconnect()
   }, [])
 
-  const slide = useCallback(
-    (progress: number) => x.set(reduce ? 0 : -progress * travel),
-    [reduce, travel, x],
-  )
+  // Restarts whenever the mentor in view changes, so a mentor picked by hand also gets the full time.
+  useEffect(() => {
+    if (reduce || paused || mentors.length < 2) return
+    const timer = window.setTimeout(() => setActive((i) => (i + 1) % mentors.length), ROTATE_MS)
+    return () => window.clearTimeout(timer)
+  }, [active, mentors.length, paused, reduce])
 
-  useMotionValueEvent(scrollYProgress, "change", (progress) => {
-    slide(progress)
-    setActive(Math.round(progress * (mentors.length - 1)))
-  })
-  // Re-place the row when its travel changes (first measure, resize) without waiting for a scroll.
-  useEffect(() => slide(scrollYProgress.get()), [slide, scrollYProgress])
-
-  /** Scrolls the page to the point where the given mentor's card is in view. */
+  /** Brings the given mentor's card into view. */
   const goTo = useCallback(
     (slug: string, behavior: ScrollBehavior) => {
-      const section = sectionRef.current
-      const track = trackRef.current
-      const card = document.getElementById(slug)
-      if (!section || !track || !card) return false
-      if (reduce) {
-        card.scrollIntoView({ behavior, block: "nearest", inline: "start" })
-        return true
-      }
-      const offset = Math.min(travel, card.offsetLeft - (track.firstElementChild as HTMLElement).offsetLeft)
-      window.scrollTo({ top: section.getBoundingClientRect().top + window.scrollY + offset, behavior })
+      const index = mentors.findIndex((m) => m.slug === slug)
+      if (index < 0) return false
+      setActive(index)
+      if (reduce) document.getElementById(slug)?.scrollIntoView({ behavior, block: "nearest", inline: "start" })
       return true
     },
-    [reduce, travel],
+    [mentors, reduce],
   )
 
-  // A link such as /mentors#sandeep lands on that mentor once the row has been measured.
+  // A link such as /mentors#sandeep lands on that mentor.
   useEffect(() => {
-    if (!travel) return
-    const land = () => {
-      const slug = window.location.hash.slice(1)
-      if (mentors.some((m) => m.slug === slug)) goTo(slug, "instant")
-    }
+    const land = () => goTo(window.location.hash.slice(1), "instant")
     land()
     window.addEventListener("hashchange", land)
     return () => window.removeEventListener("hashchange", land)
-  }, [goTo, mentors, travel])
+  }, [goTo])
 
   return (
-    <section
-      ref={sectionRef}
-      aria-labelledby="mentors-title"
-      className="relative"
-      style={reduce ? undefined : { height: `calc(100dvh + ${travel}px)` }}
-    >
+    <section aria-labelledby="mentors-title" className="relative">
       <div
         className={cn(
           "flex flex-col justify-center gap-5 pb-5 pt-20 sm:gap-6 sm:pt-24",
-          !reduce && "sticky top-0 h-[100dvh] overflow-hidden",
+          !reduce && "min-h-[100dvh] overflow-hidden",
         )}
       >
         <header className="container-page">
@@ -108,10 +92,19 @@ export function MentorsScroller({ mentors, lead }: { mentors: Mentor[]; lead: st
           </p>
         </header>
 
-        <div ref={viewportRef} className={cn("min-h-0", reduce && "overflow-x-auto")}>
+        <div
+          ref={viewportRef}
+          className={cn("min-h-0", reduce && "overflow-x-auto")}
+          onPointerEnter={() => setPaused(true)}
+          onPointerLeave={() => setPaused(false)}
+          onFocus={() => setPaused(true)}
+          onBlur={() => setPaused(false)}
+        >
           <motion.ol
             ref={trackRef}
-            style={{ x }}
+            initial={false}
+            animate={{ x: reduce ? 0 : -(offsets[active] ?? 0) }}
+            transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
             className="flex w-max items-stretch gap-4 px-5 sm:gap-6 sm:px-8 lg:px-[max(3rem,calc((100vw-80rem)/2+3rem))]"
           >
             {mentors.map((m, i) => (

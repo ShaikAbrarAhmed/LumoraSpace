@@ -5,7 +5,6 @@ import { OpportunitiesHero } from "@/components/opportunities/OpportunitiesHero"
 import { WhatYouGet } from "@/components/opportunities/WhatYouGet"
 import { HowItWorks } from "@/components/opportunities/HowItWorks"
 import { WhyDifferent } from "@/components/opportunities/WhyDifferent"
-import { Tracks } from "@/components/opportunities/Tracks"
 import { MoreWaysIn } from "@/components/opportunities/MoreWaysIn"
 import { ProgramsBridge } from "@/components/opportunities/ProgramsBridge"
 
@@ -25,7 +24,6 @@ export default function OpportunitiesPage() {
         <WhatYouGet />
         <HowItWorks />
         <WhyDifferent />
-        <Tracks />
         <MoreWaysIn />
         <ProgramsBridge />
       </main>
