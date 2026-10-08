@@ -1,0 +1,36 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "lumoraspace",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-06-01",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "services": [
+    {
+      "binding": "WORKER_SELF_REFERENCE",
+      "service": "lumoraspace"
+    }
+  ],
+  "images": {
+    "binding": "IMAGES"
+  },
+  "workers_dev": true,
+  // Routes on the existing proxied DNS records: the Worker answers at Cloudflare's edge and the old
+  // origin is never contacted. Removing these routes instantly hands traffic back to the old origin.
+  "routes": [
+    { "pattern": "www.lumoraspace.in/*", "zone_name": "lumoraspace.in" },
+    { "pattern": "lumoraspace.in/*", "zone_name": "lumoraspace.in" }
+  ],
+  "observability": {
+    "enabled": true
+  },
+  // Non-secret settings. Secrets (NEXTAUTH_SECRET, GOOGLE_*, FIREBASE_*, RESEND_API_KEY, ADMIN_EMAIL,
+  // UPSTASH_*) are set with `npx wrangler secret put <NAME>`; see .env.example.
+  "vars": {
+    "NEXTAUTH_URL": "https://www.lumoraspace.in",
+    "CF_WORKERS": "1"
+  }
+}

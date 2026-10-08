@@ -1,16 +1,15 @@
-import { MetadataRoute } from "next";
+import type { MetadataRoute } from "next";
+import { SITE_URL } from "@/lib/site";
 
 export default function robots(): MetadataRoute.Robots {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://lumora.space";
-
   return {
     rules: [
       {
         userAgent: "*",
-        allow: ["/", "/features", "/community", "/cohorts", "/mentors", "/our-story", "/privacy", "/terms"],
+        allow: "/",
         disallow: ["/api/", "/signin", "/create-account", "/cohorts/join", "/dashboard", "/app"],
       },
     ],
-    sitemap: `${baseUrl}/sitemap.xml`,
+    sitemap: `${SITE_URL}/sitemap.xml`,
   };
 }

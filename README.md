@@ -1,36 +1,34 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# LumoraSpace
 
-## Getting Started
+Source for [www.lumoraspace.in](https://www.lumoraspace.in): the marketing site, program pages,
+accounts (NextAuth with Google and email + password) and the program application form.
 
-First, run the development server:
+Next.js 16 (App Router), React 19, Tailwind CSS 4. Next.js 16 differs from older versions: read
+the guides in `node_modules/next/dist/docs/` before changing framework code.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## Setup
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+1. Node.js 20 or newer.
+2. `npm install`
+3. Copy `.env.example` to `.env.local` and fill it in:
+   - `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `NEXTAUTH_URL`, `NEXTAUTH_SECRET`: sign-in.
+   - `RESEND_API_KEY`, `ADMIN_EMAIL`: notification emails for new accounts and applications.
+   - `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, `FIREBASE_PRIVATE_KEY`: Firestore (accounts, applications).
+   - `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`: shared rate-limit counters. Without them
+     each server instance counts in memory, which does not hold across serverless instances.
+   - `TRUSTED_PROXY_HOPS`: only when self-hosting behind a reverse proxy (see the comment in `.env.example`).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+   Never commit a real `.env*` file; `.gitignore` only lets `.env.example` through.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Scripts
 
-## Learn More
+- `npm run dev`: development server on http://localhost:3000
+- `npm run build`, then `npm run start`: production build and server
+- `npm run lint`, `npx tsc --noEmit`: lint and type check
 
-To learn more about Next.js, take a look at the following resources:
+## Deploying
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+The site needs a Node.js host: NextAuth and the `/api/signup` and `/api/submit-form` routes run
+on the server, so a static export (for example GitHub Pages) cannot serve it. The live site
+responds from Vercel. The public URL used for canonicals, the sitemap and JSON-LD is fixed in
+`src/lib/site.ts` (`SITE_URL`), not read from the environment.

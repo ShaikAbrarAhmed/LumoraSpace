@@ -1,58 +1,57 @@
-"use client";
+"use client"
 
-import { signIn, signOut, useSession } from "next-auth/react";
-import Image from "next/image";
-import { motion } from "framer-motion";
-import { LogOut, LogIn } from "lucide-react";
+import { useEffect, useState } from "react"
+import { signIn } from "next-auth/react"
+import { Loader2 } from "lucide-react"
 
-export default function SignInButton() {
-  const { data: session, status } = useSession();
+function GoogleMark({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" aria-hidden focusable="false">
+      <path
+        fill="currentColor"
+        d="M12.24 10.285V14.4h6.887c-.275 1.565-1.88 4.604-6.887 4.604-4.33 0-7.859-3.578-7.859-8s3.529-8 7.859-8c2.46 0 4.105 1.025 5.047 1.926l3.227-3.107C18.29 1.905 15.42 1 12.24 1 6.033 1 1 6.033 1 12.24s5.033 11.24 11.24 11.24c6.478 0 10.793-4.537 10.793-10.985 0-.74-.08-1.302-.177-1.854H12.24z"
+      />
+    </svg>
+  )
+}
 
-  if (status === "loading") {
-    return (
-      <div className="w-24 h-10 bg-slate-200 animate-pulse rounded-full" />
-    );
-  }
+/**
+ * "Continue with Google" for the sign-in and create-account pages.
+ * `getCallbackUrl` runs on click so it can read the pending membership action at that moment.
+ */
+export function GoogleSignInButton({ getCallbackUrl, disabled }: { getCallbackUrl: () => string; disabled?: boolean }) {
+  const [redirecting, setRedirecting] = useState(false)
 
-  if (session && session.user) {
-    return (
-      <div className="flex items-center gap-3">
-        <div className="flex items-center gap-2">
-          {session.user.image && (
-            <Image
-              src={session.user.image}
-              alt="Profile"
-              width={28}
-              height={28}
-              className="w-7 h-7 rounded-full border border-border"
-            />
-          )}
-          <span className="text-sm font-medium text-muted-foreground hidden lg:inline-block">
-            {session.user.name}
-          </span>
-        </div>
-        <motion.button
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          onClick={() => signOut()}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <LogOut className="w-3.5 h-3.5" />
-          Logout
-        </motion.button>
-      </div>
-    );
-  }
+  // Coming back with the browser's back button restores this page from cache; re-enable the button.
+  useEffect(() => {
+    const onPageShow = (event: PageTransitionEvent) => event.persisted && setRedirecting(false)
+    window.addEventListener("pageshow", onPageShow)
+    return () => window.removeEventListener("pageshow", onPageShow)
+  }, [])
 
   return (
-    <motion.button
-      whileHover={{ scale: 1.02 }}
-      whileTap={{ scale: 0.98 }}
-      onClick={() => signIn("google")}
-      className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+    <button
+      type="button"
+      disabled={disabled || redirecting}
+      onClick={() => {
+        setRedirecting(true)
+        signIn("google", { callbackUrl: getCallbackUrl() }).catch(() => setRedirecting(false))
+      }}
+      className="flex h-12 w-full items-center justify-center gap-3 rounded-full border border-white/15 font-heading text-sm font-semibold text-headings transition-colors duration-200 hover:border-white/35 hover:bg-white/[0.04] disabled:cursor-not-allowed disabled:opacity-60"
     >
-      <LogIn className="w-3.5 h-3.5" />
-      Login
-    </motion.button>
-  );
+      {redirecting ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <GoogleMark className="h-4 w-4 shrink-0" />}
+      Continue with Google
+    </button>
+  )
+}
+
+/** Hairline divider with a centred "or" between the credentials form and Google sign-in. */
+export function AuthDivider() {
+  return (
+    <div className="flex items-center gap-4" aria-hidden>
+      <span className="h-px flex-1 bg-white/[0.08]" />
+      <span className="font-heading text-xs uppercase tracking-[0.2em] text-muted-foreground">or</span>
+      <span className="h-px flex-1 bg-white/[0.08]" />
+    </div>
+  )
 }

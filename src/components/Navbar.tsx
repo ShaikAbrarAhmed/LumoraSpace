@@ -2,424 +2,382 @@
 
 import Link from "next/link"
 import Image from "next/image"
-import { motion, AnimatePresence } from "framer-motion"
-import { useState, useEffect, useRef } from "react"
-import { Logo } from "@/components/Logo"
 import { usePathname } from "next/navigation"
+import { useCallback, useEffect, useId, useRef, useState } from "react"
+import { useMotionValueEvent, useScroll } from "framer-motion"
+import { ArrowUpRight } from "lucide-react"
 import { signOut, useSession } from "next-auth/react"
+import { ARENA, CAREERS, CONTACT, EDU, NAV_ITEMS } from "@/lib/site"
 
-// --- Custom Animated Path Component for Dynamic Hamburger -> X Icon ---
-const Path = (props: React.ComponentProps<typeof motion.path>) => (
-  <motion.path
-    fill="transparent"
-    strokeWidth="2"
-    stroke="currentColor"
-    strokeLinecap="round"
-    {...props}
-  />
-)
+const ECOSYSTEM = [
+  { label: EDU.name, host: EDU.host, href: EDU.home },
+  { label: ARENA.name, host: ARENA.host, href: ARENA.home },
+  { label: CAREERS.name, host: CAREERS.host, href: CAREERS.home },
+]
 
-interface JoinLumoraSpaceButtonProps {
-  className?: string;
-  children: React.ReactNode;
+// On desktop the logo is the way home, which keeps the inline nav on one line from 1280px up.
+const DESKTOP_ITEMS = NAV_ITEMS.filter((item) => item.href !== "/")
+
+// Below this width the menu button takes over. Keep in sync with the min-[80rem] classes.
+const DESKTOP_QUERY = "(min-width: 80rem)"
+
+const FOCUSABLE = 'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])'
+
+// Non-content siblings left alone when the open menu makes the rest of the page inert.
+// The route announcer must stay live so the page change after a menu link is still announced.
+const SKIP_INERT = new Set(["SCRIPT", "STYLE", "NOSCRIPT", "TEMPLATE", "LINK", "META", "NEXT-ROUTE-ANNOUNCER"])
+
+function isActive(href: string, pathname: string) {
+  if (href === "/") return pathname === "/"
+  if (href === "/cohorts" && pathname.startsWith("/programs")) return true
+  return pathname === href || pathname.startsWith(`${href}/`)
 }
 
-function JoinLumoraSpaceButton({ className, children }: JoinLumoraSpaceButtonProps) {
+/**
+ * Rendered first in <body> by the root layout. Pages own their <main>, so the link
+ * targets #main when a page sets it and otherwise moves focus to the first <main>.
+ */
+export function SkipLink() {
   return (
-    <Link href="/create-account" className={className}>
-      {children}
-    </Link>
+    <a
+      href="#main"
+      onClick={(event) => {
+        const target = document.getElementById("main") ?? document.querySelector("main")
+        if (!target) return
+        event.preventDefault()
+        if (!target.hasAttribute("tabindex")) target.setAttribute("tabindex", "-1")
+        target.focus()
+      }}
+      className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-3 focus:z-[60] focus:inline-flex focus:h-11 focus:items-center focus:rounded-full focus:bg-primary focus:px-5 focus:font-heading focus:text-sm focus:font-semibold focus:text-primary-foreground"
+    >
+      Skip to content
+    </a>
   )
 }
 
 export function Navbar() {
   const pathname = usePathname()
-  const [isScrolled, setIsScrolled] = useState(false)
-  const [isOpen, setIsOpen] = useState(false)
   const { data: session, status } = useSession()
-  
-  const navWrapperRef = useRef<HTMLDivElement>(null)
+  const user = session?.user
 
-  useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 20)
-    }
-    window.addEventListener("scroll", handleScroll)
-    return () => window.removeEventListener("scroll", handleScroll)
-  }, [])
+  // Remember the route the menu was opened on, so any navigation closes it.
+  const [openOn, setOpenOn] = useState<string | null>(null)
+  const open = openOn !== null && openOn === pathname
 
-  // Close dropdown on outside click
+  // The header only needs to know whether the page has left the top, not every scroll value.
+  const { scrollY } = useScroll()
+  const [scrolled, setScrolled] = useState(false)
+  useMotionValueEvent(scrollY, "change", (latest) => setScrolled(latest > 12))
+
+  const menuId = useId()
+  const toggleRef = useRef<HTMLButtonElement>(null)
+  const sheetRef = useRef<HTMLDivElement>(null)
+
+  const close = useCallback(() => setOpenOn(null), [])
+
+  // Escape closes, Tab stays inside the toggle + sheet, page scroll is locked,
+  // and everything behind the sheet leaves the accessibility tree.
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (navWrapperRef.current && !navWrapperRef.current.contains(event.target as Node)) {
-        setIsOpen(false)
+    if (!open) return
+
+    const root = document.documentElement
+    const previousOverflow = root.style.overflow
+    root.style.overflow = "hidden"
+
+    // The Close toggle lives in the header, so the sheet cannot be aria-modal (VoiceOver would
+    // hide the toggle). Instead make every other branch of the page inert while the menu is open.
+    const header = toggleRef.current?.closest("header") ?? null
+    const madeInert: HTMLElement[] = []
+    for (let node: HTMLElement | null = sheetRef.current; node && node !== document.body; node = node.parentElement) {
+      const parent: HTMLElement | null = node.parentElement
+      if (!parent) break
+      for (const sibling of Array.from(parent.children)) {
+        if (!(sibling instanceof HTMLElement) || sibling === node || sibling === header || sibling.inert) continue
+        if (SKIP_INERT.has(sibling.tagName) || (header && sibling.contains(header))) continue
+        sibling.inert = true
+        madeInert.push(sibling)
       }
     }
-    if (isOpen) {
-      document.addEventListener("mousedown", handleClickOutside)
+
+    const firstLink = sheetRef.current?.querySelector<HTMLElement>(FOCUSABLE)
+    firstLink?.focus({ preventScroll: true })
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault()
+        close()
+        toggleRef.current?.focus()
+        return
+      }
+      if (event.key !== "Tab" || !sheetRef.current || !toggleRef.current) return
+      const items = [toggleRef.current, ...sheetRef.current.querySelectorAll<HTMLElement>(FOCUSABLE)]
+      const first = items[0]
+      const last = items[items.length - 1]
+      const current = document.activeElement as HTMLElement | null
+      if (event.shiftKey && (current === first || !items.includes(current as HTMLElement))) {
+        event.preventDefault()
+        last.focus()
+      } else if (!event.shiftKey && (current === last || !items.includes(current as HTMLElement))) {
+        event.preventDefault()
+        first.focus()
+      }
     }
+
+    const desktop = window.matchMedia(DESKTOP_QUERY)
+    const onDesktop = (event: MediaQueryListEvent) => event.matches && close()
+
+    document.addEventListener("keydown", onKeyDown)
+    desktop.addEventListener("change", onDesktop)
     return () => {
-      document.removeEventListener("mousedown", handleClickOutside)
+      root.style.overflow = previousOverflow
+      for (const element of madeInert) element.inert = false
+      document.removeEventListener("keydown", onKeyDown)
+      desktop.removeEventListener("change", onDesktop)
     }
-  }, [isOpen])
+  }, [open, close])
 
-
-
-  // Framer Motion Dropdown Variants
-  const dropdownVariants = {
-    hidden: { 
-      opacity: 0, 
-      scale: 0.95,
-      y: -10,
-    },
-    show: { 
-      opacity: 1, 
-      scale: 1,
-      y: 0,
-      transition: { 
-        type: "spring" as const,
-        stiffness: 380,
-        damping: 30,
-        staggerChildren: 0.05,
-        delayChildren: 0.05
-      } 
-    },
-    exit: { 
-      opacity: 0, 
-      scale: 0.95,
-      y: -10,
-      transition: { 
-        duration: 0.15,
-        staggerChildren: 0.03,
-        staggerDirection: -1
-      } 
-    }
-  }
-
-  const itemVariants = {
-    hidden: { opacity: 0, x: 10 },
-    show: { 
-      opacity: 1, 
-      x: 0,
-      transition: { 
-        type: "spring" as const,
-        stiffness: 200,
-        damping: 18
-      }
-    },
-    exit: { 
-      opacity: 0, 
-      x: 5,
-      transition: { 
-        duration: 0.1 
-      } 
-    }
-  }
+  const solid = scrolled || open
 
   return (
-    <header
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 w-full border-b ${
-        isScrolled
-          ? "bg-[#050505]/75 backdrop-blur-xl border-white/[0.06] py-4 shadow-[0_8px_32px_rgba(0,0,0,0.6)]"
-          : "bg-transparent border-transparent py-7"
-      }`}
-    >
-      <div className="w-full px-6 md:px-12 lg:px-20 xl:px-24 flex items-center justify-between">
-        <div className="flex-1 flex items-center justify-start min-w-[280px]">
-          <Link
-  href="/"
-  className="flex items-center gap-4 group select-none"
->
+    <>
+      <header className="fixed inset-x-0 top-0 z-50">
+        {/* Backdrop fades in once the page scrolls, so links stay legible over content. */}
+        <div
+          aria-hidden
+          className={`absolute inset-0 -z-10 border-b border-white/[0.06] bg-[#050505]/80 backdrop-blur-xl transition-opacity duration-300 ${
+            solid ? "opacity-100" : "opacity-0"
+          }`}
+        />
+        <div className="mx-auto flex h-16 w-full max-w-[90rem] items-center justify-between gap-6 px-5 sm:px-8 lg:px-10">
+          <Link href="/" className="flex shrink-0 items-center gap-3" aria-label="LumoraSpace home">
+            {/* White cut-outs of the brand mark and wordmark (public/logo-mark.png, public/logo-wordmark.png). */}
+            <Image src="/logo-mark.png" alt="" width={156} height={123} loading="eager" className="h-8 w-auto" />
+            <Image
+              src="/logo-wordmark.png"
+              alt="LumoraSpace"
+              width={998}
+              height={87}
+              loading="eager"
+              className="h-3 w-auto sm:h-3.5"
+            />
+          </Link>
 
-
-
-  <Logo
-    variant="icon"
-    size="lg"
-    flat
-  />
-
-  <span
-    className="
-      font-heading
-      font-semibold
-      text-[14px]
-      sm:text-[16px]
-      md:text-[18px]
-      tracking-[0.3em]
-      text-white
-      uppercase
-    "
-  >LUMORASPACE</span>
-</Link>
-        </div>
-
-        {/* Centered navigation links (Desktop only) */}
-        <nav className="hidden lg:flex items-center justify-center gap-9">
-          {[
-            { label: "HOME", href: "/" },
-            { label: "FEATURES", href: "/features" },
-            { label: "COMMUNITY", href: "/community" },
-            { label: "PROGRAMS", href: "/cohorts" },
-            { label: "MENTORS", href: "/mentors" },
-            { label: "TEAM", href: "/team" },
-          ].map((item) => {
-            const isActive = pathname === item.href
-            return (
-              <Link
-                key={item.label}
-                href={item.href}
-                className="relative text-[10px] font-semibold font-heading tracking-[0.2em] text-[#A8A8A8] hover:text-white transition-colors duration-200 uppercase py-1 select-none"
-              >
-                <span>{item.label}</span>
-                {isActive && (
-                  <span className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-white rounded-full drop-shadow-[0_0_4px_rgba(255,255,255,0.8)]" />
-                )}
-              </Link>
-            )
-          })}
-        </nav>
-
-        {/* Right side actions */}
-        <div className="flex-1 flex items-center justify-end gap-4">
-          {status === "loading" ? (
-            <div className="hidden lg:block w-20 h-7 bg-muted animate-pulse rounded-full" />
-          ) : session && session.user ? (
-            <div className="hidden lg:flex items-center gap-3">
-              <div className="flex items-center gap-2 max-w-[150px] overflow-hidden">
-                {session.user.image && (
-                  <Image
-                    src={session.user.image}
-                    alt="Profile Avatar"
-                    width={24}
-                    height={24}
-                    className="w-6 h-6 rounded-full border border-border flex-shrink-0"
-                  />
-                )}
-                <span className="text-[10px] font-semibold font-heading tracking-wider text-white truncate">
-                  {session.user.name}
-                </span>
-              </div>
-              <button
-                onClick={() => signOut()}
-                className="text-[10px] font-bold font-heading tracking-wider text-red-400 hover:text-red-500 transition-colors cursor-pointer"
-              >
-                LOG OUT
-              </button>
-            </div>
-          ) : (
-            <>
-              <JoinLumoraSpaceButton
-                className="hidden lg:inline-flex items-center justify-center gap-1.5 rounded-full border border-white/20 px-5 py-1.8 text-[10px] font-bold font-heading text-white hover:bg-white/5 hover:border-white/35 transition-all duration-200 select-none active:translate-y-px"
-              >
-                <span>Join LumoraSpace</span>
-                <span className="text-[12px] mt-[-1px]">→</span>
-              </JoinLumoraSpaceButton>
-            </>
-          )}
-
-        {/* Dynamic Hamburger Menu Toggle with Anchored Floating Dropdown */}
-        <div ref={navWrapperRef} className="relative flex items-center lg:hidden">
-          <button
-            onClick={() => setIsOpen(!isOpen)}
-            className="p-2 md:p-2.5 rounded-full hover:bg-muted text-foreground transition-colors flex items-center justify-center cursor-pointer"
-            aria-label="Toggle Menu"
-          >
-            <svg width="18" height="18" viewBox="0 0 23 23">
-              <Path
-                animate={isOpen ? { d: "M 3 16.5 L 17 2.5" } : { d: "M 2 4.5 L 20 4.5" }}
-                transition={{ duration: 0.3 }}
-              />
-              <Path
-                d="M 2 11.5 L 20 11.5"
-                animate={isOpen ? { opacity: 0 } : { opacity: 1 }}
-                transition={{ duration: 0.2 }}
-              />
-              <Path
-                animate={isOpen ? { d: "M 3 2.5 L 17 16.5" } : { d: "M 2 18.5 L 20 18.5" }}
-                transition={{ duration: 0.3 }}
-              />
-            </svg>
-          </button>
-
-          {/* ================= FLOATING GLASSMORPHISM DROPDOWN PANEL ================= */}
-          <AnimatePresence>
-            {isOpen && (
-              <motion.div
-                variants={dropdownVariants}
-                initial="hidden"
-                animate="show"
-                exit="exit"
-                className="absolute top-[calc(100%+12px)] right-0 w-[260px] md:w-[280px] bg-card/90 backdrop-blur-xl border border-white/5 rounded-2xl shadow-[0_16px_48px_rgba(0,0,0,0.5)] p-3 flex flex-col gap-1.5 z-50 origin-top-right"
-              >
-                
-                {/* --- Primary Navigation --- */}
-                <div className="flex flex-col gap-0.5">
-                  <span className="text-[9px] font-bold text-slate-400 tracking-widest px-3 py-1.5 uppercase select-none block">
-                    Primary Navigation
-                  </span>
-
-                  {/* Features */}
-                  <motion.div variants={itemVariants}>
+          <nav aria-label="Main" className="hidden min-[80rem]:block">
+            <ul className="flex items-center gap-6">
+              {DESKTOP_ITEMS.map((item) => {
+                const active = isActive(item.href, pathname)
+                return (
+                  <li key={item.href}>
                     <Link
-                      href="/features"
-                      onClick={() => setIsOpen(false)}
-                      className="w-full text-left px-3.5 py-2.5 rounded-xl text-[14px] font-semibold text-foreground hover:bg-muted hover:text-primary transition-all flex items-center justify-between group"
+                      href={item.href}
+                      aria-current={active ? "page" : undefined}
+                      className={`relative block whitespace-nowrap py-2 font-heading text-xs font-medium uppercase tracking-[0.14em] transition-colors duration-200 ${
+                        active ? "text-headings" : "text-muted-foreground hover:text-headings"
+                      }`}
                     >
-                      <span>Features</span>
-                      <span className="opacity-0 group-hover:opacity-100 transition-opacity text-xs font-bold">→</span>
+                      {item.label}
+                      <span
+                        aria-hidden
+                        className={`absolute inset-x-0 bottom-0.5 h-px origin-left bg-headings transition-transform duration-300 ${
+                          active ? "scale-x-100" : "scale-x-0"
+                        }`}
+                      />
                     </Link>
-                  </motion.div>
+                  </li>
+                )
+              })}
+            </ul>
+          </nav>
 
-                  {/* Community */}
-                  <motion.div variants={itemVariants}>
-                    <Link
-                      href="/community"
-                      onClick={() => setIsOpen(false)}
-                      className="w-full text-left px-3.5 py-2.5 rounded-xl text-[14px] font-semibold text-foreground hover:bg-muted hover:text-primary transition-all flex items-center justify-between group"
-                    >
-                      <span>Community</span>
-                      <span className="opacity-0 group-hover:opacity-100 transition-opacity text-xs font-bold">→</span>
-                    </Link>
-                  </motion.div>
-
-                  {/* Cohorts */}
-                  <motion.div variants={itemVariants}>
-                    <Link
-                      href="/cohorts"
-                      onClick={() => setIsOpen(false)}
-                      className="w-full text-left px-3.5 py-2.5 rounded-xl text-[14px] font-semibold text-foreground hover:bg-muted hover:text-primary transition-all flex items-center justify-between group"
-                    >
-                      <span>Cohorts</span>
-                      <span className="opacity-0 group-hover:opacity-100 transition-opacity text-xs font-bold">→</span>
-                    </Link>
-                  </motion.div>
-                </div>
-
-                {/* Divider */}
-                <div className="w-full h-px bg-border/50 my-1" />
-
-                {/* --- Secondary Navigation --- */}
-                <div className="flex flex-col gap-0.5">
-                  <span className="text-[9px] font-bold text-slate-400 tracking-widest px-3 py-1.5 uppercase select-none block">
-                    Secondary Navigation
-                  </span>
-
-                  {/* Mentors */}
-                  <motion.div variants={itemVariants}>
-                    <Link
-                      href="/mentors"
-                      onClick={() => setIsOpen(false)}
-                      className="w-full text-left px-3.5 py-2.5 rounded-xl text-[14px] font-semibold text-foreground hover:bg-muted hover:text-primary transition-all flex items-center justify-between group"
-                    >
-                      <span>Mentors</span>
-                      <span className="opacity-0 group-hover:opacity-100 transition-opacity text-xs font-bold">→</span>
-                    </Link>
-                  </motion.div>
-
-                  {/* Team */}
-                  <motion.div variants={itemVariants}>
-                    <Link
-                      href="/team"
-                      onClick={() => setIsOpen(false)}
-                      className="w-full text-left px-3.5 py-2.5 rounded-xl text-[14px] font-semibold text-foreground hover:bg-muted hover:text-primary transition-all flex items-center justify-between group"
-                    >
-                      <span>Team</span>
-                      <span className="opacity-0 group-hover:opacity-100 transition-opacity text-xs font-bold">→</span>
-                    </Link>
-                  </motion.div>
-
-
-
-                  {/* Contact */}
-                  <motion.div variants={itemVariants}>
-                    <a
-                      href="mailto:Support.lumoraspace@gmail.com"
-                      className="w-full text-left px-3.5 py-2.5 rounded-xl text-[14px] font-semibold text-foreground hover:bg-muted hover:text-primary transition-all flex items-center justify-between group"
-                    >
-                      <span>Contact</span>
-                      <span className="opacity-0 group-hover:opacity-100 transition-opacity text-xs font-bold">→</span>
-                    </a>
-                  </motion.div>
-                </div>
-
-                {/* Divider */}
-                <div className="w-full h-px bg-border/50 my-1" />
-
-                {/* --- Actions --- */}
-                <div className="flex flex-col gap-1.5 mt-1">
-                  <span className="text-[9px] font-bold text-slate-400 tracking-widest px-3 py-0.5 uppercase select-none block">
-                    Actions
-                  </span>
-
-                  {/* Login state */}
-                  {status === "loading" ? (
-                    <motion.div variants={itemVariants} className="px-1">
-                      <div className="h-8 bg-slate-200 animate-pulse rounded-lg" />
-                    </motion.div>
-                  ) : session && session.user ? (
-                    <motion.div variants={itemVariants} className="px-1">
-                      <div className="flex items-center justify-between gap-3 p-2 bg-muted border border-border/40 rounded-xl">
-                        <div className="flex items-center gap-2 overflow-hidden">
-                          {session.user.image && (
-                            <Image
-                              src={session.user.image}
-                              alt="Profile Avatar"
-                              width={28}
-                              height={28}
-                              className="w-7 h-7 rounded-full border border-border flex-shrink-0"
-                            />
-                          )}
-                          <span className="text-xs font-semibold text-foreground truncate">
-                            {session.user.name}
-                          </span>
-                        </div>
-                        <button
-                          onClick={() => {
-                            signOut()
-                            setIsOpen(false)
-                          }}
-                          className="text-[10px] font-bold text-red-500 hover:text-red-600 transition-colors flex-shrink-0 cursor-pointer"
-                        >
-                          Log Out
-                        </button>
-                      </div>
-                    </motion.div>
-                  ) : null}
-
-                  {!session && (
-                    <motion.div variants={itemVariants} className="px-1">
-                      <JoinLumoraSpaceButton
-                        className="group w-full py-2.5 px-4 bg-primary hover:bg-primary/95 text-[#050505] text-xs font-bold rounded-xl transition-all shadow-sm shadow-primary/20 hover:shadow-md flex items-center justify-center gap-2 cursor-pointer"
-                      >
-                        <span className="relative flex h-2 w-2">
-                          <motion.span
-                            className="absolute inset-0 rounded-full bg-secondary/80"
-                            animate={{
-                              scale: [1, 2.5],
-                              opacity: [0.8, 0],
-                            }}
-                            transition={{
-                              duration: 2.2,
-                              ease: "easeOut",
-                              repeat: Infinity,
-                              repeatDelay: 0.6,
-                            }}
-                          />
-                          <span className="relative inline-flex rounded-full h-2 w-2 bg-secondary shadow-[0_0_8px_rgba(129,140,248,0.7)] group-hover:scale-110 group-hover:shadow-[0_0_14px_rgba(129,140,248,0.9)] transition-all duration-300" />
-                        </span>
-                        <span>Join LumoraSpace →</span>
-                      </JoinLumoraSpaceButton>
-                    </motion.div>
+          <div className="flex shrink-0 items-center gap-2 sm:gap-4">
+            {status === "loading" ? (
+              <span aria-hidden className="hidden h-11 w-44 rounded-full bg-white/[0.04] min-[80rem]:block" />
+            ) : user ? (
+              <div className="hidden items-center gap-4 min-[80rem]:flex">
+                <span className="flex items-center gap-2.5">
+                  {user.image && (
+                    <Image
+                      src={user.image}
+                      alt=""
+                      width={28}
+                      height={28}
+                      className="h-7 w-7 shrink-0 rounded-full border border-white/10"
+                    />
                   )}
-                </div>
-
-              </motion.div>
+                  <span className="hidden max-w-[9rem] truncate text-[13px] font-medium text-headings min-[90rem]:block">
+                    {user.name}
+                  </span>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => signOut({ callbackUrl: "/" })}
+                  className="whitespace-nowrap py-2 font-heading text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground transition-colors hover:text-headings"
+                >
+                  Log out
+                </button>
+              </div>
+            ) : (
+              <>
+                <Link
+                  href="/signin"
+                  className="hidden whitespace-nowrap py-2 font-heading text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground transition-colors hover:text-headings min-[80rem]:block"
+                >
+                  Sign in
+                </Link>
+                <Link
+                  href="/create-account"
+                  className={`hidden h-11 items-center whitespace-nowrap rounded-full bg-primary px-5 font-heading text-[13px] font-semibold text-primary-foreground transition-[background-color,transform] duration-200 hover:bg-secondary active:scale-[0.98] ${
+                    open ? "" : "sm:inline-flex"
+                  }`}
+                >
+                  Join LumoraSpace
+                </Link>
+              </>
             )}
-          </AnimatePresence>
+
+            <button
+              ref={toggleRef}
+              type="button"
+              onClick={() => setOpenOn(open ? null : pathname)}
+              aria-expanded={open}
+              aria-controls={menuId}
+              aria-label={open ? "Close menu" : "Open menu"}
+              className="-mr-2.5 flex h-11 w-11 items-center justify-center rounded-full text-headings transition-colors hover:bg-white/[0.06] min-[80rem]:hidden"
+            >
+              <span aria-hidden className="relative block h-3 w-5">
+                <span
+                  className={`absolute left-0 top-0 h-px w-5 bg-current transition-transform duration-300 ${
+                    open ? "translate-y-1.5 rotate-45" : ""
+                  }`}
+                />
+                <span
+                  className={`absolute bottom-0 left-0 h-px w-5 bg-current transition-transform duration-300 ${
+                    open ? "-translate-y-1.5 -rotate-45" : ""
+                  }`}
+                />
+              </span>
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* Opening shows the sheet at once so focus can move into it; closing keeps it visible until the fade ends. */}
+      <div
+        id={menuId}
+        ref={sheetRef}
+        inert={!open}
+        className={`fixed inset-x-0 bottom-0 top-16 z-40 overflow-y-auto overscroll-contain bg-[#050505] duration-300 min-[80rem]:hidden ${
+          open ? "visible opacity-100 transition-opacity" : "invisible opacity-0 transition-[opacity,visibility]"
+        }`}
+      >
+        <div
+          className={`container-page grid content-start gap-x-16 gap-y-12 pb-12 pt-6 transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] md:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] md:pt-12 ${
+            open ? "translate-y-0" : "-translate-y-3"
+          }`}
+        >
+          <nav aria-label="Menu">
+            <ul className="flex flex-col gap-1">
+              {NAV_ITEMS.map((item) => {
+                const active = isActive(item.href, pathname)
+                return (
+                  <li key={item.href}>
+                    <Link
+                      href={item.href}
+                      onClick={close}
+                      aria-current={active ? "page" : undefined}
+                      className={`flex min-h-12 items-center gap-4 font-fancy text-[2rem] font-light leading-[1.15] transition-colors ${
+                        active ? "text-headings" : "text-headings/60 hover:text-headings"
+                      }`}
+                    >
+                      {item.label}
+                      {active && <span aria-hidden className="h-px w-8 bg-headings/70" />}
+                    </Link>
+                  </li>
+                )
+              })}
+            </ul>
+          </nav>
+
+          <div className="flex flex-col gap-12">
+            <div>
+              {status === "loading" ? (
+                <span aria-hidden className="block h-12 rounded-full bg-white/[0.04]" />
+              ) : user ? (
+                <div className="flex items-center justify-between gap-4 rounded-2xl border border-white/[0.08] bg-[#0B0B0C] p-3 pl-4">
+                  <span className="flex min-w-0 items-center gap-3">
+                    {user.image && (
+                      <Image
+                        src={user.image}
+                        alt=""
+                        width={32}
+                        height={32}
+                        className="h-8 w-8 shrink-0 rounded-full border border-white/10"
+                      />
+                    )}
+                    <span className="truncate text-[15px] font-medium text-headings">{user.name}</span>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      close()
+                      signOut({ callbackUrl: "/" })
+                    }}
+                    className="min-h-11 shrink-0 rounded-full border border-white/15 px-4 font-heading text-xs font-medium uppercase tracking-[0.14em] text-headings transition-colors hover:bg-white/[0.06]"
+                  >
+                    Log out
+                  </button>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-3">
+                  <Link href="/create-account" onClick={close} className="btn-primary min-h-12 w-full">
+                    Join LumoraSpace
+                  </Link>
+                  <Link href="/signin" onClick={close} className="btn-secondary min-h-12 w-full">
+                    Sign in
+                  </Link>
+                </div>
+              )}
+            </div>
+
+            <div>
+              <p className="eyebrow">LumoraSpace sites</p>
+              <ul className="mt-3">
+                {ECOSYSTEM.map((site) => (
+                  <li key={site.href}>
+                    <a
+                      href={site.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={close}
+                      className="group flex min-h-14 items-center justify-between gap-4 py-2"
+                    >
+                      <span className="min-w-0">
+                        <span className="block font-heading text-base font-medium text-headings">{site.label}</span>
+                        <span className="mt-0.5 block text-xs text-muted-foreground">{site.host}</span>
+                      </span>
+                      <ArrowUpRight
+                        aria-hidden
+                        className="h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-headings"
+                      />
+                      <span className="sr-only"> (opens in a new tab)</span>
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div>
+              <p className="eyebrow">Contact</p>
+              <a
+                href={`mailto:${CONTACT.hello}`}
+                className="mt-2 inline-flex min-h-11 items-center text-[15px] text-headings underline decoration-white/25 underline-offset-4 transition-colors hover:decoration-white/70"
+              >
+                {CONTACT.hello}
+              </a>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
-    </header>
+    </>
   )
 }

@@ -1,127 +1,114 @@
 "use client"
 
-import { motion } from "framer-motion"
-import { Compass, BookOpen, Users, TrendingUp } from "lucide-react"
+import { useRef, useSyncExternalStore } from "react"
+import { motion, useReducedMotion, useScroll, useTransform } from "framer-motion"
+import { Reveal } from "@/components/ui/reveal"
 
-const problems = [
+const questions = [
+  "What stack should I even learn?",
+  "How do I structure a real application?",
+  "Am I ready for a hackathon?",
+]
+
+// Staggered left edge on larger screens gives the questions an editorial rhythm.
+const indents = ["", "sm:pl-[8%] lg:pl-[14%]", "sm:pl-[16%] lg:pl-[28%]"]
+
+const pillars = [
   {
-    icon: Compass,
-    title: "No Clear Direction",
-    description: "Too many roadmaps. Too many opinions. Beginners struggle because they don't know what to learn next or how to filter high-quality information.",
-    isHero: true
+    title: "Direction",
+    text: "Structured programs that set what to learn next, and in what order.",
   },
   {
-    icon: BookOpen,
-    title: "Tutorial Overload",
-    description: "Watching content passively without shipping code. Escaping the copy-paste loop is the first step to true builder confidence.",
-    isHero: false
+    title: "Community",
+    text: "Students learning the same things, ready to help when you get stuck.",
   },
   {
-    icon: Users,
-    title: "Learning Alone",
-    description: "Coding in isolation with no code reviews, system critiques, or peer support squad.",
-    isHero: false
+    title: "Accountability",
+    text: "Scheduled live sessions and a capstone project keep you moving every week.",
   },
   {
-    icon: TrendingUp,
-    title: "Lack of Accountability",
-    description: "Starting strong on weekends and losing daily momentum as work friction rises.",
-    isHero: false
-  }
+    title: "Mentorship",
+    text: "Industry mentors teach the programs and give feedback on your actual work.",
+  },
+  {
+    title: "Opportunities",
+    text: "Hackathons on Lumora Arena and internships on Lumora Careers when you're ready.",
+  },
 ]
 
 export function ProblemSection() {
+  const reduceMotion = useStaticMotion()
+
   return (
-    <section id="problem" className="py-16 md:py-20 px-6 bg-[#050505] text-white relative overflow-hidden border-t border-white/5">
-      {/* Background glow effects */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-[20%] left-[-10%] w-[500px] h-[500px] bg-primary/5 blur-[120px] rounded-full" />
-        <div className="absolute bottom-[20%] right-[-10%] w-[600px] h-[600px] bg-primary/3 blur-[150px] rounded-full" />
-      </div>
+    <section
+      id="problem"
+      aria-labelledby="problem-title"
+      className="section-y border-t border-white/[0.06] bg-[#08080A]"
+    >
+      <div className="container-page">
+        <Reveal>
+          <h2
+            id="problem-title"
+            className="max-w-5xl text-balance font-fancy text-[2.75rem] font-light leading-[1.05] tracking-tight text-headings sm:text-6xl lg:text-[5.25rem]"
+          >
+            {"Most students don't lack talent."}{" "}
+            <span className="text-muted-foreground">They lack direction.</span>
+          </h2>
+          <p className="mt-8 max-w-2xl text-pretty text-base leading-relaxed text-muted-foreground sm:text-lg">
+            {
+              "The internet has endless resources. Most beginners stall because they don't know what to learn, where to start, or how to stay consistent."
+            }
+          </p>
+        </Reveal>
 
-      <div className="w-full px-6 lg:px-12 xl:px-20 relative z-10">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-start">
-          
-          {/* ================= LEFT COLUMN: STICKY THESIS (5 cols) ================= */}
-          <div className="lg:col-span-5 lg:sticky lg:top-32 space-y-6">
-            <span className="text-xs font-semibold text-primary tracking-[0.2em] uppercase block">
-              THE REAL PROBLEM
-            </span>
-            <h2 className="text-4xl md:text-5xl font-fancy font-light text-headings tracking-tight leading-tight max-w-md">
-              Most Students Don&apos;t Lack Talent.
-              <br />
-              <span className="text-muted-foreground font-light">They lack direction.</span>
-            </h2>
-            <p className="text-base text-muted-foreground font-light leading-relaxed max-w-md">
-              The internet has endless resources. But most beginners struggle because they don&apos;t know what to learn, where to start, or how to stay consistent.
-            </p>
-            
-            <div className="pt-8 border-t border-white/5 space-y-4 max-w-md">
-              <p className="text-2xl font-fancy font-light italic text-white/90 leading-relaxed">
-                &ldquo;Learning alone is a design flaw.&rdquo;
-              </p>
-              <p className="text-xs text-muted-foreground/60 leading-relaxed font-light">
-                Traditional education platforms sell content catalogs, leaving students to navigate the complex engineering roadmap in isolation.
-              </p>
-            </div>
-          </div>
+        <ul aria-label="Questions students ask us" className="mt-20 space-y-8 sm:mt-28 sm:space-y-12">
+          {questions.map((question, index) => (
+            <Question key={question} text={question} className={indents[index]} animate={!reduceMotion} />
+          ))}
+        </ul>
 
-          {/* ================= RIGHT COLUMN: CARDS STACK WITH HIERARCHY (7 cols) ================= */}
-          <div className="lg:col-span-7 space-y-6">
-            {problems.map((problem, i) => {
-              const Icon = problem.icon
-              return (
-                <motion.div
-                  key={problem.title}
-                  initial={{ opacity: 0, y: 15 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.6, delay: i * 0.05 }}
-                  whileHover={{ y: -2, transition: { duration: 0.2 } }}
-                  className={`group relative rounded-3xl backdrop-blur-md transition-all duration-300 ${
-                    problem.isHero 
-                      ? "p-8 md:p-10 bg-[#111214] border border-primary/25 shadow-[0_20px_50px_rgba(255,255,255,0.015)] hover:border-primary/45"
-                      : "p-6 bg-[#111214]/40 border border-white/10 hover:bg-[#111214] hover:border-white/20 hover:shadow-2xl"
-                  }`}
-                >
-                  {/* Glow accent inside the hero card */}
-                  {problem.isHero && (
-                    <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-primary/5 to-transparent opacity-100 pointer-events-none" />
-                  )}
-
-                  <div className="relative z-10 flex flex-col md:flex-row gap-5 items-start">
-                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 transition-colors duration-300 ${
-                      problem.isHero
-                        ? "bg-primary/10 border border-primary/20 text-primary"
-                        : "bg-white/5 border border-white/10 text-slate-400 group-hover:bg-primary/10 group-hover:border-primary/20 group-hover:text-primary"
-                    }`}>
-                      <Icon className="w-5 h-5" />
-                    </div>
-                    
-                    <div className="space-y-2 text-left">
-                      <h3 className={`font-semibold tracking-tight transition-colors duration-300 ${
-                        problem.isHero 
-                          ? "text-xl text-white" 
-                          : "text-lg text-headings group-hover:text-primary"
-                      }`}>
-                        {problem.title}
-                      </h3>
-                      <p className={`font-light leading-relaxed ${
-                        problem.isHero 
-                          ? "text-sm text-slate-300" 
-                          : "text-xs md:text-sm text-slate-400"
-                      }`}>
-                        {problem.description}
-                      </p>
-                    </div>
-                  </div>
-                </motion.div>
-              )
-            })}
-          </div>
-
+        <div id="features" className="mt-24 scroll-mt-28 border-t border-white/[0.08] pt-12 sm:mt-32 sm:pt-16">
+          <h3 className="font-heading text-lg font-medium text-headings">What changes with LumoraSpace</h3>
+          <dl className="mt-10 grid gap-x-10 gap-y-10 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 xl:gap-x-8">
+            {pillars.map((pillar, index) => (
+              <Reveal key={pillar.title} y={16} delay={index * 0.05}>
+                <dt className="font-fancy text-[2rem] font-light leading-[1.1] text-headings">{pillar.title}</dt>
+                <dd className="mt-3 text-pretty text-[15px] leading-relaxed text-muted-foreground">{pillar.text}</dd>
+              </Reveal>
+            ))}
+          </dl>
         </div>
       </div>
     </section>
+  )
+}
+
+const noopSubscribe = () => () => {}
+
+// Framer already knows the reduced-motion preference on the first client render, which would make that
+// render differ from the server HTML. Flattening only once hydration is done keeps the two identical.
+function useStaticMotion() {
+  const hydrated = useSyncExternalStore(noopSubscribe, () => true, () => false)
+  return Boolean(useReducedMotion()) && hydrated
+}
+
+// Each question brightens and settles as it moves up into the reading zone.
+// The motion values stay bound and flatten to the resting state under reduced motion, so the
+// DOM is corrected even when the server HTML was rendered with the animated starting style.
+function Question({ text, className, animate }: { text: string; className: string; animate: boolean }) {
+  const ref = useRef<HTMLLIElement>(null)
+  const { scrollYProgress } = useScroll({ target: ref, offset: ["start 0.95", "start 0.55"] })
+  const opacity = useTransform(scrollYProgress, [0, 1], animate ? [0.15, 1] : [1, 1])
+  const y = useTransform(scrollYProgress, [0, 1], animate ? [28, 0] : [0, 0])
+
+  return (
+    <li ref={ref} className={className}>
+      <motion.p
+        style={{ opacity, y }}
+        className="text-balance pb-1 font-fancy text-[2rem] font-light italic leading-[1.15] text-headings sm:text-5xl lg:text-6xl"
+      >
+        {`“${text}”`}
+      </motion.p>
+    </li>
   )
 }

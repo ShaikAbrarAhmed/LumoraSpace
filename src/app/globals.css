@@ -2,8 +2,6 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
-@plugin "tailwindcss-animate";
-
 @theme inline {
   --font-sans: var(--font-sans);
   --font-heading: var(--font-heading);
@@ -64,11 +62,11 @@
   
   /* Primary Accent: Accent (#D9D9D9) */
   --primary: #D9D9D9;
-  --primary-foreground: #0A0A0A;
+  --primary-foreground: #050505;
   
   /* Secondary Accent / Highlight: Highlight (#F5F5F5) */
   --secondary: #F5F5F5;
-  --secondary-foreground: #0A0A0A;
+  --secondary-foreground: #050505;
   
   --muted: #141414;
   --muted-foreground: #A8A8A8;
@@ -101,6 +99,20 @@
   }
   html {
     @apply scroll-smooth;
+    scroll-padding-top: 6rem;
+    /* Keeps the layout still when the mobile menu locks page scroll on desktop-size screens. */
+    scrollbar-gutter: stable;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  :focus-visible {
+    outline: 2px solid rgba(255, 255, 255, 0.7);
+    outline-offset: 3px;
+  }
+
+  /* <main> only receives focus from the skip link; no ring around the whole page. */
+  main[tabindex="-1"]:focus {
+    outline: none;
   }
   
   h1, h2 {
@@ -152,6 +164,63 @@
   );
   animation: shimmer 2s infinite;
   content: '';
+}
+
+@utility container-page {
+  width: 100%;
+  max-width: 80rem;
+  margin-inline: auto;
+  padding-inline: 1.25rem;
+
+  @media (width >= 40rem) {
+    padding-inline: 2rem;
+  }
+  @media (width >= 64rem) {
+    padding-inline: 3rem;
+  }
+}
+
+@utility section-y {
+  padding-block: 5rem;
+
+  @media (width >= 48rem) {
+    padding-block: 7.5rem;
+  }
+}
+
+/* One top offset for every compact inner-page header, clear of the fixed 64px navbar.
+   The full-height home hero does not use it. */
+@utility page-header {
+  padding-top: 7rem;
+  padding-bottom: 4rem;
+
+  @media (width >= 48rem) {
+    padding-top: 9rem;
+    padding-bottom: 5rem;
+  }
+}
+
+@utility eyebrow {
+  font-family: var(--font-heading), sans-serif;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 @utility btn-primary {

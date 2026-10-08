@@ -1,29 +1,43 @@
 import { NextResponse } from "next/server";
 import { Redis } from "@upstash/redis";
 
+/** Every request whose address cannot be trusted shares this one bucket. */
+const UNKNOWN_CLIENT = "unknown";
+
+// Number of reverse proxies in front of the app that append to X-Forwarded-For (see .env.example).
+const trustedProxyHops = Math.max(0, Number.parseInt(process.env.TRUSTED_PROXY_HOPS ?? "0", 10) || 0);
+
 /**
- * Extract client IP address from request headers or Next.js internal properties.
+ * Client address for rate limiting. Headers a client can set itself are never trusted:
+ * reading the left-most X-Forwarded-For entry would let anyone pick a fresh key per request.
+ * - On Vercel the platform sets x-real-ip and overwrites x-forwarded-for.
+ * - Elsewhere, x-forwarded-for is read only when TRUSTED_PROXY_HOPS says how many proxies
+ *   appended to it, and then only the entry the outermost trusted proxy added.
  */
 export function getClientIp(req: Request): string {
-  // 1. x-forwarded-for header (common on Vercel and load balancers)
-  const xForwardedFor = req.headers.get("x-forwarded-for");
-  if (xForwardedFor) {
-    const ips = xForwardedFor.split(",");
-    const clientIp = ips[0].trim();
-    if (clientIp) return clientIp;
+  // On Cloudflare Workers (CF_WORKERS is set in wrangler.jsonc) every request passes Cloudflare's
+  // edge, which always sets cf-connecting-ip to the real client address.
+  if (process.env.CF_WORKERS) {
+    return req.headers.get("cf-connecting-ip")?.trim() || UNKNOWN_CLIENT;
   }
 
-  // 2. x-real-ip header
-  const xRealIp = req.headers.get("x-real-ip");
-  if (xRealIp) return xRealIp;
-
-  // 3. NextRequest internal ip property
-  if ("ip" in req && typeof (req as Request & { ip?: string }).ip === "string") {
-    return (req as Request & { ip?: string }).ip as string;
+  if (process.env.VERCEL) {
+    const realIp = req.headers.get("x-real-ip")?.trim();
+    if (realIp) return realIp;
+    const forwarded = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
+    return forwarded || UNKNOWN_CLIENT;
   }
 
-  // 4. Default fallback
-  return "127.0.0.1";
+  if (trustedProxyHops > 0) {
+    const ips = (req.headers.get("x-forwarded-for") ?? "")
+      .split(",")
+      .map((ip) => ip.trim())
+      .filter(Boolean);
+    const ip = ips[ips.length - trustedProxyHops];
+    if (ip) return ip;
+  }
+
+  return UNKNOWN_CLIENT;
 }
 
 // In-Memory store fallback for local development or when Redis is down
@@ -70,10 +84,20 @@ const url = process.env.UPSTASH_REDIS_REST_URL?.trim();
 const token = process.env.UPSTASH_REDIS_REST_TOKEN?.trim();
 const redis = url && token ? new Redis({ url, token }) : null;
 
-if (!redis) {
-  console.warn("Upstash Redis credentials missing or invalid. Falling back to MemoryStore rate limiting.");
+// Warned on the first check, not at module load, so `next build` workers stay quiet.
+let warnedMissingRedis = false;
+
+function warnMissingRedisOnce() {
+  if (redis || warnedMissingRedis) return;
+  warnedMissingRedis = true;
+  const message =
+    "UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN are not set. Rate limits fall back to per-instance memory.";
+  // In production every serverless instance would count separately, so the limits are not really enforced.
+  if (process.env.NODE_ENV === "production") console.error(message);
+  else console.warn(message);
 }
 
+/** Fixed one-minute window limiter keyed by route and client address (Upstash Redis, memory fallback). */
 export class RateLimiter {
   private limit: number;
   private route: string;
@@ -83,15 +107,19 @@ export class RateLimiter {
     this.route = options.route;
   }
 
-  async check(req: Request): Promise<{
+  /**
+   * Counts one request. `identifier` replaces the client address as the bucket key, e.g. a
+   * lower-cased email so a login limit also holds when the attacker rotates addresses.
+   */
+  async check(req: Request, identifier?: string): Promise<{
     success: boolean;
     limit: number;
     remaining: number;
     reset: number;
     response?: NextResponse;
   }> {
-    const ip = getClientIp(req);
-    console.log(`[RateLimiter] Checking route ${this.route} for IP: ${ip}`);
+    warnMissingRedisOnce();
+    const ip = identifier ?? getClientIp(req);
     const now = Date.now();
     const currentWindow = Math.floor(now / 60000); // 1-minute window
     const key = `ratelimit:${this.route}:${ip}:${currentWindow}`;
@@ -126,7 +154,8 @@ export class RateLimiter {
     if (!allowed) {
       // Log exceeded limits: Route, IP Address, Timestamp
       console.warn(
-        `[RATE LIMIT EXCEEDED] Route: ${this.route}, IP: ${ip}, Timestamp: ${new Date(now).toISOString()}`
+        // A custom identifier may be an email address, so only client addresses are logged.
+        `[RATE LIMIT EXCEEDED] Route: ${this.route}, IP: ${identifier ? "(per-account limit)" : ip}, Timestamp: ${new Date(now).toISOString()}`
       );
 
       const headers = {

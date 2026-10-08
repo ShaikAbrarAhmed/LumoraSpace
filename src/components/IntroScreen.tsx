@@ -1,119 +1,59 @@
-"use client";
+"use client"
 
-import { useState, useEffect } from "react";
-import { Logo } from "@/components/Logo";
+import { useEffect, useState, useSyncExternalStore } from "react"
+import { Logo } from "@/components/Logo"
+
+const STORAGE_KEY = "lumora_intro_shown"
+const INTRO_ID = "lumora-intro"
+
+// Holds, then fades out and hides itself. Pure CSS, so it finishes even if JS never loads.
+// Total runtime is 1.35s and the layer never takes pointer events.
+const INTRO_CSS =
+  "@keyframes ls-intro-out{0%,55%{opacity:1}100%{opacity:0;visibility:hidden}}" +
+  "@keyframes ls-intro-in{from{opacity:0;transform:translate3d(0,6px,0) scale(.97)}}"
+
+// Parsed right after the overlay, before first paint: returning visitors in this tab never see it.
+const SKIP_SCRIPT = `(function(){try{if(sessionStorage.getItem("${STORAGE_KEY}")){var el=document.getElementById("${INTRO_ID}");if(el)el.style.display="none"}}catch(e){}})()`
+
+const subscribe = () => () => {}
 
 export function IntroScreen() {
-  const [step, setStep] = useState<number>(0);
-  const [isMounted, setIsMounted] = useState<boolean>(true);
+  // True only while hydrating the server HTML. A client-side navigation back to home
+  // mounts with `false`, so the intro only ever plays on a real page load.
+  const isHydrating = useSyncExternalStore(subscribe, () => false, () => true)
+  const [isPageLoad] = useState(isHydrating)
+  const [finished, setFinished] = useState(false)
 
   useEffect(() => {
-    // 1. Immediately check sessionStorage to prevent flicker
-    const shown = typeof window !== "undefined" && sessionStorage.getItem("lumora_intro_shown");
-    if (shown) {
-      document.documentElement.classList.add("skip-intro");
-      setTimeout(() => {
-        setStep(6);
-        setIsMounted(false);
-      }, 0);
-      return;
+    try {
+      sessionStorage.setItem(STORAGE_KEY, "true")
+    } catch {
+      // Storage can be unavailable (private mode); the intro simply plays again next load.
     }
+  }, [])
 
-    // 2. Begin timing sequence
-    // Step 1: Logo fades in (0.0s)
-    setTimeout(() => setStep(1), 0);
-
-    // Step 2: Glow appears (0.5s)
-    const t2 = setTimeout(() => setStep(2), 500);
-
-    // Step 3: Tagline appears (1.0s)
-    const t3 = setTimeout(() => setStep(3), 1000);
-
-    // Step 4: Secondary text appears (1.4s)
-    const t4 = setTimeout(() => setStep(4), 1400);
-
-    // Step 5: Transition begins (1.8s) - Add skip-intro to HTML to fade in home
-    const t5 = setTimeout(() => {
-      setStep(5);
-      document.documentElement.classList.add("skip-intro");
-    }, 1800);
-
-    // Step 6: Complete (2.2s) - Set item and unmount
-    const t6 = setTimeout(() => {
-      setStep(6);
-      sessionStorage.setItem("lumora_intro_shown", "true");
-      setIsMounted(false);
-    }, 2200);
-
-    return () => {
-      clearTimeout(t2);
-      clearTimeout(t3);
-      clearTimeout(t4);
-      clearTimeout(t5);
-      clearTimeout(t6);
-    };
-  }, []);
-
-  if (!isMounted || step === 6) return null;
-
-  // Derive styles based on step timing
-  const isDissolving = step >= 5;
-  const isLogoVisible = step >= 1;
-  const isGlowVisible = step >= 2;
-  const isTaglineVisible = step >= 3;
-  const isSecondaryVisible = step >= 4;
+  if (!isPageLoad || finished) return null
 
   return (
-    <div
-      className={`fixed inset-0 z-[99999] bg-background flex flex-col items-center justify-center transition-opacity duration-[400ms] ease-in-out pointer-events-none select-none ${
-        isDissolving ? "opacity-0" : "opacity-100"
-      }`}
-    >
-      {/* 1. Ambient Glow (LumoraSpace Accent - Soft and Premium) */}
+    <>
+      <style>{INTRO_CSS}</style>
       <div
-        className={`absolute w-72 h-72 md:w-[350px] md:h-[350px] rounded-full bg-primary/10 blur-[80px] md:blur-[100px] pointer-events-none transition-all duration-[1000ms] ease-out ${
-          isGlowVisible ? "opacity-100 scale-100" : "opacity-0 scale-90"
-        } ${isDissolving ? "scale-[1.15] opacity-0" : ""}`}
-      />
-
-      {/* 2. Logo Container (Soft Fade and Gentle Scale) */}
-      <div
-        className={`relative z-10 transition-all duration-[2200ms] ease-out ${
-          isLogoVisible ? "opacity-100 scale-[1.03]" : "opacity-0 scale-95"
-        } ${isDissolving ? "opacity-0 scale-105 blur-sm" : ""}`}
+        id={INTRO_ID}
+        aria-hidden="true"
+        suppressHydrationWarning
+        onAnimationEnd={(event) => {
+          if (event.target === event.currentTarget) setFinished(true)
+        }}
+        className="pointer-events-none fixed inset-0 z-[100] flex select-none flex-col items-center justify-center bg-[#050505] animate-[ls-intro-out_1.35s_ease-in-out_forwards] motion-reduce:hidden"
       >
-        <Logo size="xl" flat className="shadow-2xl" />
-      </div>
-
-      {/* 3. Typography Content Wrapper */}
-      <div className="relative z-10 mt-10 flex flex-col items-center">
-        {/* Tagline: FROM CONFUSED TO CONFIDENT */}
-        <div
-          className={`text-center transition-all duration-700 ease-out ${
-            isTaglineVisible
-              ? "opacity-100 translate-y-0"
-              : "opacity-0 translate-y-2"
-          } ${isDissolving ? "opacity-0 -translate-y-2 blur-xs" : ""}`}
-        >
-          <h1 className="font-fancy font-light font-black text-xl md:text-2xl tracking-[0.25em] text-white uppercase leading-none">
-            From Confused
-          </h1>
-          <h1 className="font-fancy font-light font-black text-xl md:text-2xl tracking-[0.25em] text-primary uppercase mt-1 leading-none">
-            To Confident
-          </h1>
+        <div className="animate-[ls-intro-in_0.6s_cubic-bezier(0.16,1,0.3,1)_both]">
+          <Logo size="xl" flat />
         </div>
-
-        {/* Secondary: Learn • Build • Grow • Belong */}
-        <p
-          className={`text-center mt-4 transition-all duration-700 ease-out font-sans text-[10px] md:text-xs tracking-[0.22em] text-slate-400 font-light ${
-            isSecondaryVisible
-              ? "opacity-80 translate-y-0"
-              : "opacity-0 translate-y-2"
-          } ${isDissolving ? "opacity-0 -translate-y-2 blur-xs" : ""}`}
-        >
+        <p className="mt-6 font-heading text-xs font-medium uppercase tracking-[0.3em] text-muted-foreground animate-[ls-intro-in_0.6s_cubic-bezier(0.16,1,0.3,1)_0.15s_both]">
           Learn &bull; Build &bull; Grow &bull; Belong
         </p>
       </div>
-    </div>
-  );
+      <script dangerouslySetInnerHTML={{ __html: SKIP_SCRIPT }} />
+    </>
+  )
 }

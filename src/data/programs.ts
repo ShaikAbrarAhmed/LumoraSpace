@@ -1,11 +1,22 @@
-
+/**
+ * Enrollment state shown everywhere a program appears (home, /cohorts, /programs/[slug]).
+ * Keep this the single source of truth so every page shows the same label.
+ */
+export type ProgramStatus = "Enrollment open" | "Launching soon";
 
 export interface Program {
   slug: string;
   title: string;
   description: string;
+  status?: ProgramStatus;
+  /** Who the program suits, taken from the program's own FAQ. */
+  level?: string;
+  /** Display strings. The numbers below feed the Course JSON-LD and must say the same thing. */
   duration: string;
   schedule: string;
+  weeks: number;
+  daysPerWeek: number;
+  hoursPerDay: number;
   mode: string;
   fee: string;
   feeAmount: number;
@@ -42,11 +53,12 @@ export interface Program {
   genAI: {
     description: string;
     tools: string[];
-    integration: string;
   };
   careerPrep: {
     title: string;
     description: string;
+    /** Groups the list on the program page. */
+    group?: "Profile" | "Interviews";
   }[];
   mentors: {
     name: string;
@@ -73,59 +85,64 @@ export const programs: Record<string, Program> = {
   "web-development-with-genai": {
     slug: "web-development-with-genai",
     title: "MERN Stack Development with GenAI",
-    description: "Build robust, scalable web applications using the modern MERN stack. Supercharge your development workflow with AI.",
-    duration: "12 Weeks",
-    schedule: "Mon–Fri, 1.5 Hours / Day",
-    mode: "Live Online & Hands-on Building",
-    fee: "₹4,999",
+    description: "Build and deploy full-stack web apps with MongoDB, Express, React, Node.js and Next.js, and ship AI features into them.",
+    status: "Enrollment open",
+    level: "Beginner to intermediate",
+    duration: "12 weeks",
+    schedule: "Mon to Fri, 1.5 hours a day",
+    weeks: 12,
+    daysPerWeek: 5,
+    hoursPerDay: 1.5,
+    mode: "Live online, hands-on building",
+    fee: "₹4,999 + GST",
     feeAmount: 4999,
     showCurriculum: false,
-    promotionalGraphic: "/programs/mern-stack-with-gen-ai.jpg",
+    promotionalGraphic: "/programs/mern-stack-gen-ai.jpg",
     brochureUrl: "/brochures/mern-genai.pdf",
     overview: {
-      whatIsIt: "A rigorous, hands-on program designed to transform you into a full-stack engineer. You won't just learn syntax; you will build end-to-end systems.",
-      whatYouWorkOn: "From responsive interfaces to complex backend APIs, you'll architect database schemas, implement authentication, and deploy production-ready applications.",
+      whatIsIt: "A hands-on program in full-stack web development. You build complete systems end to end, from the interface to the database and deployment.",
+      whatYouWorkOn: "From responsive interfaces to complex backend APIs, you'll design database schemas, add authentication and deploy production-ready applications.",
       learningExperience: "We focus on building. Less passive video watching, more writing code, debugging, and receiving direct feedback from mentors on actual projects."
     },
     competencies: [
       {
-        title: "Frontend Architecture",
-        description: "Build responsive, accessible, and performant interfaces using React and modern CSS systems.",
+        title: "Frontend architecture",
+        description: "Build responsive, accessible and fast interfaces with React and modern CSS.",
         icon: "layout",
       },
       {
-        title: "Backend Engineering",
-        description: "Develop robust REST APIs using Node.js and Express with proper error handling.",
+        title: "Backend engineering",
+        description: "Build REST APIs with Node.js and Express, with proper error handling.",
         icon: "server",
       },
       {
-        title: "Database Design",
-        description: "Design efficient MongoDB schemas, handle relationships, and optimize data queries.",
+        title: "Database design",
+        description: "Design MongoDB schemas, model relationships between data and write efficient queries.",
         icon: "database",
       },
       {
-        title: "Authentication Systems",
-        description: "Implement secure user authentication with JWT and secure password hashing.",
+        title: "Authentication systems",
+        description: "Build user sign-in with JWT and secure password hashing.",
         icon: "shield",
       },
       {
-        title: "Full-Stack Integration",
-        description: "Connect complex frontends to scalable backends with robust state management.",
+        title: "Full-stack integration",
+        description: "Connect React frontends to Node backends and manage state across them.",
         icon: "code2",
       },
       {
-        title: "AI Application Development",
-        description: "Integrate LLMs directly into your applications to build intelligent features.",
+        title: "AI application development",
+        description: "Call LLM APIs from your apps to add AI features.",
         icon: "terminal",
       },
       {
-        title: "Testing & Quality",
-        description: "Write reliable tests and ensure code quality before shipping to production.",
+        title: "Testing and quality",
+        description: "Write tests and check code quality before you ship to production.",
         icon: "zap",
       },
       {
-        title: "Deployment & DevOps",
-        description: "Deploy your full-stack applications with modern CI/CD pipelines.",
+        title: "Deployment and DevOps",
+        description: "Deploy your full-stack apps through CI/CD pipelines.",
         icon: "rocket",
       }
     ],
@@ -138,7 +155,7 @@ export const programs: Record<string, Program> = {
       },
       {
         week: "02",
-        title: "JavaScript Foundations",
+        title: "JavaScript foundations",
         topics: ["ES6+ Syntax", "Promises & Async/Await", "DOM Manipulation", "Functional Array Methods"],
         practicalWork: "Build a dynamic interactive web component."
       },
@@ -147,7 +164,7 @@ export const programs: Record<string, Program> = {
         title: "React",
         topics: ["Component Architecture", "State & Props", "React Hooks (useState, useEffect)", "Context API"],
         practicalWork: "Build a multi-component stateful application.",
-        milestone: "Frontend Interface Deployment"
+        milestone: "Frontend interface deployment"
       },
       {
         week: "04",
@@ -163,26 +180,26 @@ export const programs: Record<string, Program> = {
       },
       {
         week: "06",
-        title: "MongoDB & Data Validation",
+        title: "MongoDB and data validation",
         topics: ["NoSQL Concepts", "Mongoose Schemas", "Data Relationships", "Zod Validation"],
         practicalWork: "Design a relational schema and connect it to your Express API.",
-        milestone: "Backend Database Architecture"
+        milestone: "Backend database architecture"
       },
       {
         week: "07",
-        title: "Full-Stack Integration",
+        title: "Full-stack integration",
         topics: ["CORS & Proxying", "Fetching Data", "API State Management", "Handling Loading States"],
         practicalWork: "Connect your React frontend to your Express/MongoDB backend."
       },
       {
         week: "08",
-        title: "Authentication & Security",
+        title: "Authentication and security",
         topics: ["JWT Tokens", "Bcrypt Hashing", "Protected Routes", "Role-Based Access"],
         practicalWork: "Implement a complete login and registration flow."
       },
       {
         week: "09",
-        title: "Advanced State & Real-Time",
+        title: "Advanced state and real-time",
         topics: ["Redux/Zustand", "WebSockets", "Socket.io", "Real-Time Updates"],
         practicalWork: "Build a real-time feature (e.g., live chat or notifications)."
       },
@@ -191,77 +208,82 @@ export const programs: Record<string, Program> = {
         title: "Next.js",
         topics: ["Server Components", "App Router", "Server Actions", "SEO & Meta"],
         practicalWork: "Build an SEO-optimized full-stack Next.js application.",
-        milestone: "Next.js Architecture"
+        milestone: "Next.js architecture"
       },
       {
         week: "11",
-        title: "Testing, DevOps & Deployment",
+        title: "Testing, DevOps and deployment",
         topics: ["Jest/Vitest", "CI/CD Pipelines", "Vercel & Render Deployment", "Environment Variables"],
         practicalWork: "Deploy your full-stack application to the public internet."
       },
       {
         week: "12",
-        title: "GenAI Integration & Capstone",
+        title: "GenAI integration and capstone",
         topics: ["OpenAI/Anthropic API", "Prompt Engineering", "AI Tooling", "Capstone Presentation"],
         practicalWork: "Build the final Capstone project integrating AI capabilities.",
-        milestone: "Final Production App"
+        milestone: "Final production app"
       }
     ],
     projects: [
       {
         stage: "Learning",
-        title: "Interactive Components",
-        description: "Master the DOM, state, and UI logic by building foundational web components.",
+        title: "Interactive components",
+        description: "Build basic web components to learn the DOM, state and UI logic.",
         technologies: ["JavaScript", "HTML", "Tailwind CSS"]
       },
       {
         stage: "Building",
-        title: "Full-Stack Dashboard",
-        description: "Develop a secure, data-driven dashboard with authentication, CRUD operations, and responsive charts.",
+        title: "Full-stack dashboard",
+        description: "Build a secure dashboard with authentication, CRUD operations and responsive charts.",
         technologies: ["React", "Node.js", "Express", "MongoDB"]
       },
       {
         stage: "Deploying",
-        title: "Real-Time Application",
-        description: "Engineer a high-performance web app with real-time state synchronization using WebSockets.",
+        title: "Real-time application",
+        description: "Build a web app that syncs state in real time over WebSockets.",
         technologies: ["Next.js", "TypeScript", "Socket.io"]
       },
       {
         stage: "Capstone",
-        title: "AI-Powered SaaS MVP",
-        description: "Architect and launch a complete software-as-a-service product integrating a GenAI pipeline to solve a specific user problem.",
+        title: "AI-powered SaaS MVP",
+        description: "Build and launch a SaaS product with a GenAI pipeline that solves one specific user problem.",
         technologies: ["MERN Stack", "GenAI APIs", "Vercel"]
       }
     ],
     genAI: {
-      description: "AI is fundamentally changing software engineering. In this program, you will not just learn how to use AI tools—you will learn how to integrate them into your codebases and accelerate your development workflow while deeply understanding the underlying engineering.",
-      tools: ["ChatGPT", "Claude", "Cursor", "GitHub Copilot", "Gemini"],
-      integration: "You will build applications that utilize LLM APIs to generate content, analyze data, and provide intelligent features to end-users."
+      description: "You code with AI tools every day and call LLM APIs from your own apps to generate content and analyze data, while still understanding the code underneath.",
+      tools: ["ChatGPT", "Claude", "Cursor", "GitHub Copilot", "Gemini"]
     },
     careerPrep: [
       {
-        title: "Resume Refinement",
-        description: "Craft a developer resume that highlights engineering accomplishments over generic responsibilities."
+        title: "Resume refinement",
+        description: "Write a developer resume that shows what you built instead of listing generic duties.",
+        group: "Profile"
       },
       {
-        title: "GitHub Portfolio",
-        description: "Structure your repositories with clean commits, professional readmes, and clear architecture documentation."
+        title: "GitHub portfolio",
+        description: "Organize your repositories with clean commits, clear READMEs and architecture documentation.",
+        group: "Profile"
       },
       {
-        title: "LinkedIn Optimization",
-        description: "Position yourself effectively in the professional network to attract engineering recruiters."
+        title: "LinkedIn optimization",
+        description: "Set up your LinkedIn profile so recruiters hiring engineers can find you.",
+        group: "Profile"
       },
       {
-        title: "Technical Interviews",
-        description: "Master problem-solving communication and prepare for standard technical screening rounds."
+        title: "Technical interviews",
+        description: "Practice explaining how you solve problems and prepare for standard technical screening rounds.",
+        group: "Interviews"
       },
       {
-        title: "System Design Basics",
-        description: "Learn how to discuss application architecture, scalability, and technical tradeoffs."
+        title: "System design basics",
+        description: "Learn to discuss application architecture, scalability and technical tradeoffs.",
+        group: "Interviews"
       },
       {
-        title: "Mock Interviews",
-        description: "Practice your behavioral and technical delivery with experienced industry mentors."
+        title: "Mock interviews",
+        description: "Practice behavioral and technical interviews with experienced industry mentors.",
+        group: "Interviews"
       }
     ],
     mentors: [
@@ -278,12 +300,12 @@ export const programs: Record<string, Program> = {
     paymentPlans: [
       {
         type: "FULL PAYMENT",
-        amount: "₹4,999",
+        amount: "₹4,999 + GST",
         description: "One-time payment",
       },
       {
         type: "SPLIT PAYMENT",
-        amount: "₹4,999",
+        amount: "₹4,999 + GST",
         description: "Split into two installments",
         schedule: [
           "₹2,499.50 at enrollment",
@@ -310,15 +332,15 @@ export const programs: Record<string, Program> = {
       },
       {
         question: "What are the payment options?",
-        answer: "We offer two payment plans: a one-time Full Payment of ₹4,999, or a Split Payment where you pay ₹2,499.50 at enrollment and the remaining ₹2,499.50 after 25 days."
+        answer: "We offer two payment plans: a one-time Full Payment of ₹4,999 + GST, or a Split Payment where you pay ₹2,499.50 at enrollment and the remaining ₹2,499.50 after 25 days."
       },
       {
-        question: "What happens after submitting the Join Program form?",
-        answer: "After you submit the form, your request is logged. Our program coordinator will personally reach out to you to discuss your application, confirm your selected payment plan, and handle the actual enrollment."
+        question: "What happens after I apply?",
+        answer: "After you submit the application form, your request is logged. Our program coordinator will personally reach out to you to discuss your application, confirm your selected payment plan, and handle the actual enrollment."
       },
       {
         question: "Is a certificate provided?",
-        answer: "Yes, upon successfully completing the program and your capstone project, you will receive a verified certificate of completion."
+        answer: "Yes, upon successfully completing the program and your capstone project, you will receive a certificate of completion."
       },
       {
         question: "What happens after completing the program?",
@@ -329,222 +351,232 @@ export const programs: Record<string, Program> = {
   "data-analyst": {
     slug: "data-analyst",
     title: "Data Analyst",
-    description: "Master data manipulation, statistical analysis, SQL querying, and business intelligence. Transform raw data into actionable business insights with AI-assisted workflows.",
-    duration: "12 Weeks",
-    schedule: "Mon–Fri, 1.5 Hours / Day",
-    mode: "Live Online & Hands-on Building",
-    fee: "₹4,999",
+    description: "Excel, SQL, Python and Power BI: learn to turn raw data into business decisions, with AI-assisted workflows.",
+    status: "Enrollment open",
+    level: "No coding experience needed",
+    duration: "12 weeks",
+    schedule: "Mon to Fri, 1.5 hours a day",
+    weeks: 12,
+    daysPerWeek: 5,
+    hoursPerDay: 1.5,
+    mode: "Live online, hands-on building",
+    fee: "₹4,999 + GST",
     feeAmount: 4999,
     showCurriculum: false,
-    promotionalGraphic: "/programs/DataAnalytics.jpeg",
+    promotionalGraphic: "/programs/data-analytics-gen-ai.jpg",
     overview: {
-      whatIsIt: "A comprehensive, practical program designed to turn beginners and aspiring analysts into data-driven decision makers. You will master analytical thinking, database querying, data visualization, and business intelligence.",
+      whatIsIt: "A practical program for beginners and aspiring analysts. You learn analytical thinking, database querying, data visualization and business intelligence, and use them to make data-driven decisions.",
       whatYouWorkOn: "From writing complex SQL queries and cleaning raw datasets to building interactive Power BI dashboards and automating analysis with Python and AI tooling.",
       learningExperience: "Hands-on data solving from day one. You will analyze real-world datasets, solve business case studies, and build portfolio-ready dashboards with direct mentor feedback."
     },
     competencies: [
       {
-        title: "Excel & Advanced Analytics",
-        description: "Master pivot tables, advanced formulas, lookup functions, and data modeling in Excel.",
+        title: "Excel and advanced analytics",
+        description: "Use pivot tables, advanced formulas, lookup functions and data modeling in Excel.",
         icon: "file-spreadsheet"
       },
       {
-        title: "SQL & Database Querying",
-        description: "Write complex SQL queries, multi-table joins, aggregations, CTEs, and window functions.",
+        title: "SQL and database querying",
+        description: "Write complex SQL queries, multi-table joins, aggregations, CTEs and window functions.",
         icon: "database"
       },
       {
-        title: "Python for Data Analysis",
-        description: "Manipulate datasets, handle missing values, and perform statistical analysis using Pandas and NumPy.",
+        title: "Python for data analysis",
+        description: "Transform datasets, handle missing values and run statistical analysis with Pandas and NumPy.",
         icon: "terminal"
       },
       {
-        title: "Data Visualization & Dashboards",
-        description: "Design interactive business dashboards and visual reports using Power BI and Matplotlib/Seaborn.",
+        title: "Data visualization and dashboards",
+        description: "Build interactive business dashboards and visual reports with Power BI, Matplotlib and Seaborn.",
         icon: "bar-chart"
       },
       {
-        title: "Exploratory Data Analysis",
-        description: "Uncover patterns, anomalies, correlations, and trends from unstructured raw data.",
+        title: "Exploratory data analysis",
+        description: "Find patterns, anomalies, correlations and trends in raw data.",
         icon: "search"
       },
       {
-        title: "Business Problem Solving",
-        description: "Translate business questions into analytical frameworks and actionable executive recommendations.",
+        title: "Business problem solving",
+        description: "Turn business questions into an analysis plan and clear recommendations for leadership.",
         icon: "target"
       },
       {
-        title: "AI-Assisted Analytics",
-        description: "Accelerate query writing, automated report generation, and data cleaning using GenAI workflows.",
+        title: "AI-assisted analytics",
+        description: "Use GenAI tools to write queries, generate reports and clean data faster.",
         icon: "zap"
       },
       {
-        title: "Statistical Modeling",
-        description: "Apply hypothesis testing, regression analysis, and descriptive statistics to real scenarios.",
+        title: "Statistical modeling",
+        description: "Apply hypothesis testing, regression analysis and descriptive statistics to real scenarios.",
         icon: "line-chart"
       }
     ],
     curriculum: [
       {
         week: "01",
-        title: "Foundations of Data Analysis & Excel",
+        title: "Foundations of data analysis and Excel",
         topics: ["Data Analyst Mindset", "Excel Essentials & Formulas", "Data Formatting & Cleaning", "Filtering & Sorting"],
         practicalWork: "Clean an unformatted multi-sheet business dataset and prepare a summary overview."
       },
       {
         week: "02",
-        title: "Advanced Excel & Data Modeling",
+        title: "Advanced Excel and data modeling",
         topics: ["VLOOKUP / XLOOKUP", "Pivot Tables & Pivot Charts", "Nested Logical Functions", "Excel Dashboards"],
         practicalWork: "Build an interactive sales performance dashboard in Microsoft Excel.",
-        milestone: "Excel Analytics Milestone"
+        milestone: "Excel analytics milestone"
       },
       {
         week: "03",
-        title: "SQL Fundamentals & Relational Databases",
+        title: "SQL fundamentals and relational databases",
         topics: ["Relational Database Concepts", "SELECT, WHERE, ORDER BY", "Filtering & Pattern Matching", "Aggregate Functions & GROUP BY"],
         practicalWork: "Query a relational database to extract customer purchase metrics."
       },
       {
         week: "04",
-        title: "Advanced SQL Querying",
+        title: "Advanced SQL querying",
         topics: ["INNER / LEFT / RIGHT Joins", "Subqueries & Nested Queries", "Common Table Expressions (CTEs)", "Window Functions"],
         practicalWork: "Solve complex multi-table SQL queries for e-commerce user cohort retention."
       },
       {
         week: "05",
-        title: "Database Optimization & Analytics SQL",
+        title: "Database optimization and analytics SQL",
         topics: ["Database Indexing Basics", "Data Transformation in SQL", "Case Statements & Conditional Aggregation", "SQL Case Studies"],
         practicalWork: "Execute an end-to-end business query audit for a retail chain dataset.",
-        milestone: "SQL Engineering Architecture"
+        milestone: "SQL engineering architecture"
       },
       {
         week: "06",
-        title: "Python Foundations for Data",
+        title: "Python foundations for data",
         topics: ["Python Data Types & Data Structures", "Control Flow & Functions", "NumPy Arrays & Vectorization", "Working with Files"],
         practicalWork: "Write Python scripts to parse, filter, and summarize raw text and CSV logs."
       },
       {
         week: "07",
-        title: "Data Manipulation with Pandas",
+        title: "Data manipulation with Pandas",
         topics: ["Pandas DataFrames & Series", "Data Cleaning & Imputation", "Grouping, Aggregating & Merging", "Time-Series Data"],
         practicalWork: "Perform exploratory data analysis (EDA) on a real-world financial transaction dataset."
       },
       {
         week: "08",
-        title: "Data Visualization & Storytelling",
+        title: "Data visualization and storytelling",
         topics: ["Matplotlib & Seaborn", "Visual Hierarchy & Chart Selection", "Communicating Insights to Stakeholders", "Plot Customization"],
         practicalWork: "Create a visual data story report highlighting churn factors for a SaaS application.",
-        milestone: "Exploratory Data Analysis Milestone"
+        milestone: "Exploratory data analysis milestone"
       },
       {
         week: "09",
-        title: "Power BI & Business Intelligence",
+        title: "Power BI and business intelligence",
         topics: ["Connecting Data Sources", "Data Transformation in Power Query", "DAX Formulas & Measures", "Building Interactive Views"],
         practicalWork: "Build a production Power BI executive dashboard with drill-down filters."
       },
       {
         week: "10",
-        title: "Applied Business Analytics & Metrics",
+        title: "Applied business analytics and metrics",
         topics: ["Key Performance Indicators (KPIs)", "Funnel Analysis & Cohort Analysis", "A/B Testing Foundations", "Financial & Operational Metrics"],
         practicalWork: "Conduct an A/B experiment evaluation and construct an executive summary."
       },
       {
         week: "11",
-        title: "AI-Assisted Data Workflows",
+        title: "AI-assisted data workflows",
         topics: ["ChatGPT & Claude for SQL Generation", "Automating Python EDA with GenAI", "Prompting for Report Synthesis", "AI Quality Auditing"],
         practicalWork: "Build an AI-augmented data pipeline that converts raw CSVs into executive summaries."
       },
       {
         week: "12",
-        title: "Capstone Project & Business Defense",
+        title: "Capstone project and business defense",
         topics: ["End-to-End Analytics Pipeline", "Dashboard Refinement", "Presentation Techniques", "Capstone Defense"],
         practicalWork: "Present and defend an end-to-end Business Intelligence Capstone Project.",
-        milestone: "Final Analytics Capstone"
+        milestone: "Final analytics capstone"
       }
     ],
     projects: [
       {
         stage: "Learning",
-        title: "Sales & Performance Excel Dashboard",
-        description: "Analyze multi-channel sales data using advanced formulas, Pivot Tables, and interactive slicers.",
+        title: "Sales and performance Excel dashboard",
+        description: "Analyze multi-channel sales data with advanced formulas, pivot tables and interactive slicers.",
         technologies: ["Microsoft Excel", "Pivot Tables", "Data Modeling"]
       },
       {
         stage: "Analysis",
-        title: "E-Commerce Customer Cohort SQL Audit",
-        description: "Query relational database tables with window functions and CTEs to identify retention trends and customer lifetime value.",
+        title: "E-commerce customer cohort SQL audit",
+        description: "Query relational tables with window functions and CTEs to find retention trends and customer lifetime value.",
         technologies: ["SQL", "PostgreSQL", "Database Aggregations"]
       },
       {
         stage: "Visualization",
-        title: "Exploratory Data Analysis with Python",
-        description: "Process messy real-world datasets with Pandas and generate insightful visualizations using Seaborn and Matplotlib.",
+        title: "Exploratory data analysis with Python",
+        description: "Clean messy real-world datasets with Pandas and chart what you find with Seaborn and Matplotlib.",
         technologies: ["Python", "Pandas", "Matplotlib", "Seaborn"]
       },
       {
-        stage: "Business Problem Solving",
-        title: "Executive Power BI Business Intelligence Dashboard",
-        description: "Architect a multi-page Power BI dashboard incorporating DAX measures, KPI tracking, and interactive cross-filtering.",
+        stage: "Business problem solving",
+        title: "Executive Power BI dashboard",
+        description: "Build a multi-page Power BI dashboard with DAX measures, KPI tracking and interactive cross-filtering.",
         technologies: ["Power BI", "DAX", "Power Query"]
       },
       {
         stage: "Capstone",
-        title: "AI-Augmented Business Intelligence Capstone",
-        description: "Synthesize raw enterprise data into a complete business story using SQL, Python, Power BI, and GenAI-assisted summary workflows.",
+        title: "AI-augmented business intelligence capstone",
+        description: "Turn raw company data into a full business report using SQL, Python, Power BI and GenAI-assisted summaries.",
         technologies: ["SQL", "Python", "Power BI", "GenAI Tools"]
       }
     ],
     genAI: {
-      description: "AI is reshaping how analysts work. In this program, you learn how to leverage GenAI tools to write SQL faster, automate data cleaning, and draft executive summaries while maintaining rigorous analytical control.",
-      tools: ["ChatGPT", "Claude", "Cursor", "Code Interpreter", "Gemini"],
-      integration: "You will integrate AI assistants into your SQL writing, Python EDA scripts, and report drafting to accelerate analysis without compromising logic."
+      description: "You use GenAI tools to write SQL, clean data in Python EDA scripts and draft executive summaries faster, and you still check every result yourself.",
+      tools: ["ChatGPT", "Claude", "Cursor", "Code Interpreter", "Gemini"]
     },
     careerPrep: [
       {
-        title: "Resume Refinement",
-        description: "Craft an analytics resume highlighting business impact, quantified data achievements, and SQL/Python projects."
+        title: "Resume refinement",
+        description: "Write an analytics resume that shows business impact, measurable results and your SQL and Python projects.",
+        group: "Profile"
       },
       {
-        title: "GitHub & Portfolio Showcase",
-        description: "Structure your SQL queries, Python notebooks, and Power BI dashboards into a polished public portfolio."
+        title: "GitHub and portfolio showcase",
+        description: "Organize your SQL queries, Python notebooks and Power BI dashboards into a public portfolio.",
+        group: "Profile"
       },
       {
-        title: "LinkedIn Optimization",
-        description: "Position yourself effectively to attract recruiters looking for Data Analysts and Business Intelligence specialists."
+        title: "LinkedIn optimization",
+        description: "Set up your LinkedIn profile so recruiters hiring data analysts and BI specialists can find you.",
+        group: "Profile"
       },
       {
-        title: "SQL & Analytics Interviews",
-        description: "Prepare for live SQL coding challenges, data puzzle screenings, and database problem solving."
+        title: "SQL and analytics interviews",
+        description: "Prepare for live SQL coding challenges, data puzzle screenings and database problem solving.",
+        group: "Interviews"
       },
       {
-        title: "Business Case Preparation",
-        description: "Learn how to structure ambiguous business problems, formulate hypotheses, and present analytical findings."
+        title: "Business case preparation",
+        description: "Learn to break down open-ended business problems, form hypotheses and present your findings.",
+        group: "Interviews"
       },
       {
-        title: "Mock Interviews",
-        description: "Practice technical query rounds and behavioral presentations with experienced industry mentors."
+        title: "Mock interviews",
+        description: "Practice technical query rounds and behavioral presentations with experienced industry mentors.",
+        group: "Interviews"
       }
     ],
     mentors: [
       {
-        name: "Purva Kabra",
-        role: "Product Manager & Analytics Strategist",
-        company: "LumberFi",
-        expertise: "Structured Thinking · Business Analytics · Product Strategy",
-        image: "/mentors/Purva.png",
-        linkedin: "https://www.linkedin.com/in/purva-kabra-pk",
-        quote: "Success isn't about having all the answers. It's about asking better questions."
+        name: "Sandeep",
+        role: "Data Science Trainer & Mentor",
+        company: "byteXL",
+        expertise: "Python · SQL · Power BI · Data Science · Machine Learning",
+        image: "/mentors/sandeep.jpeg",
+        linkedin: "https://www.linkedin.com/in/sandeepgivari",
+        quote: "Technology keeps evolving. Your ability to learn should too."
       }
     ],
     paymentPlans: [
       {
         type: "FULL PAYMENT",
-        amount: "₹4,999",
+        amount: "₹4,999 + GST",
         description: "One-time payment"
       },
       {
         type: "SPLIT PAYMENT",
-        amount: "₹4,999",
+        amount: "₹4,999 + GST",
         description: "Split into two installments",
         schedule: [
           "₹2,499.50 at enrollment",
@@ -567,7 +599,7 @@ export const programs: Record<string, Program> = {
       },
       {
         question: "What tools will I learn?",
-        answer: "You will master Microsoft Excel, SQL (PostgreSQL), Python (Pandas, NumPy, Matplotlib, Seaborn), Power BI, and GenAI analytical tools."
+        answer: "You will learn Microsoft Excel, SQL (PostgreSQL), Python (Pandas, NumPy, Matplotlib, Seaborn), Power BI, and GenAI analytical tools."
       },
       {
         question: "What projects will I build?",
@@ -575,17 +607,44 @@ export const programs: Record<string, Program> = {
       },
       {
         question: "What are the payment options?",
-        answer: "We offer two payment plans: a one-time Full Payment of ₹4,999, or a Split Payment of ₹2,499.50 at enrollment and ₹2,499.50 after 25 days."
+        answer: "We offer two payment plans: a one-time Full Payment of ₹4,999 + GST, or a Split Payment of ₹2,499.50 at enrollment and ₹2,499.50 after 25 days."
       },
       {
-        question: "What happens after submitting the Join Program form?",
+        question: "What happens after I apply?",
         answer: "Our program coordinator will personally reach out to discuss your application, confirm your selected payment plan, and guide you through enrollment."
       },
       {
         question: "Is a certificate provided?",
-        answer: "Yes, upon completing the program curriculum and passing the Capstone project defense, you will receive a verified certificate of completion."
+        answer: "Yes, upon completing the program curriculum and passing the Capstone project defense, you will receive a certificate of completion."
       }
     ]
   }
 };
 
+/** Programs in display order. */
+export const programList: Program[] = Object.values(programs);
+
+/**
+ * Programs on the roadmap. Shown only as plain "Coming soon" text: they have no
+ * page, no data and must never be linked.
+ */
+export const plannedPrograms = ["Python Builder", "AI Builder"] as const;
+
+/** Instalment lines of the split plan, straight from the data (e.g. "₹2,499.50 at enrollment"). */
+export function splitSchedule(program: Program): string[] {
+  return program.paymentPlans.find((plan) => plan.type === "SPLIT PAYMENT")?.schedule ?? [];
+}
+
+/**
+ * Short label for the split plan, e.g. "or 2 × ₹2,499.50".
+ * Derived from the schedule strings so it can never disagree with the data.
+ */
+export function splitLabel(program: Program): string | null {
+  const schedule = splitSchedule(program);
+  if (schedule.length === 0) return null;
+  const amounts = schedule.map((line) => line.match(/₹[\d,]+(?:\.\d+)?/)?.[0]).filter(Boolean) as string[];
+  if (amounts.length === schedule.length && amounts.every((amount) => amount === amounts[0])) {
+    return `or ${schedule.length} × ${amounts[0]}`;
+  }
+  return `or ${schedule.length} instalments`;
+}

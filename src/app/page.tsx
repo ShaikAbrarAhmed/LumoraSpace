@@ -1,69 +1,50 @@
-import { Metadata } from "next"
+import type { Metadata } from "next"
+import { pageMetadata } from "@/lib/metadata"
 import { Navbar } from "@/components/Navbar"
 import { Footer } from "@/components/Footer"
 import { IntroScreen } from "@/components/IntroScreen"
 
 import HeroSection from "@/components/sections/HeroSection"
+import { EcosystemSection } from "@/components/sections/EcosystemSection"
 import { ProblemSection } from "@/components/sections/ProblemSection"
-import WhyLumoraSection from "@/components/sections/WhyLumoraSection"
-import TransformationSection from "@/components/sections/TransformationSection"
+import { FrameworkSection } from "@/components/sections/FrameworkSection"
+import { ProgramsPreviewSection } from "@/components/sections/ProgramsPreviewSection"
+import { ArenaSection } from "@/components/sections/ArenaSection"
+import { OpportunitiesPreviewSection } from "@/components/sections/OpportunitiesPreviewSection"
+import { ServicesPreviewSection } from "@/components/sections/ServicesPreviewSection"
+import { MentorsPreviewSection } from "@/components/sections/MentorsPreviewSection"
+import { CommunityPreviewSection } from "@/components/sections/CommunityPreviewSection"
 import { CTASection } from "@/components/sections/CTASection"
 
+const title = "LumoraSpace | From Confused to Confident"
+const description =
+  "Mentor-led programs, hackathons and internships that take students from confused to confident. LumoraSpace also builds software and AI for businesses."
+
+// The home title is the brand line itself, so it skips the layout's " | LumoraSpace" template.
 export const metadata: Metadata = {
-  title: "LumoraSpace – Student Growth Ecosystem for Ambitious Builders",
-  description: "Transition from confusion to confidence. LumoraSpace is a premium student growth ecosystem built for ambitious student builders to learn, build, and grow.",
-  alternates: {
-    canonical: "/",
-  },
-  openGraph: {
-    type: "website",
-    url: "https://lumora.space",
-    title: "LumoraSpace – Student Growth Ecosystem for Ambitious Builders",
-    description: "Transition from confusion to confidence. LumoraSpace is a premium student growth ecosystem built for ambitious student builders to learn, build, and grow.",
-    images: [
-      {
-        url: "/logo4.png",
-        width: 1200,
-        height: 630,
-        alt: "LumoraSpace – Student Growth Ecosystem",
-      },
-    ],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "LumoraSpace – Student Growth Ecosystem for Ambitious Builders",
-    description: "Transition from confusion to confidence. LumoraSpace is a premium student growth ecosystem built for ambitious student builders to learn, build, and grow.",
-    images: ["/logo4.png"],
-  },
-};
+  ...pageMetadata({ title, description, path: "/", shareTitle: title }),
+  title: { absolute: title },
+}
 
 export default function Home() {
   return (
     <>
       <IntroScreen />
-
-      <main className="flex min-h-screen flex-col bg-background">
-        <Navbar />
-
-        <div className="flex-1">
-          {/* 1. Hero Section */}
-          <HeroSection />
-
-          {/* 2. The Problem */}
-          <ProblemSection />
-
-          {/* 3. Why LumoraSpace */}
-          <WhyLumoraSection />
-
-          {/* 4. Transformation path */}
-          <TransformationSection />
-
-          {/* 5. Call to Action */}
-          <CTASection />
-        </div>
-
-        <Footer />
+      <Navbar />
+      <main id="main" className="flex min-h-screen flex-col bg-background">
+        <HeroSection />
+        <EcosystemSection />
+        <ProblemSection />
+        <FrameworkSection />
+        <ProgramsPreviewSection />
+        <ArenaSection />
+        <OpportunitiesPreviewSection />
+        <ServicesPreviewSection />
+        <MentorsPreviewSection />
+        <CommunityPreviewSection />
+        <CTASection />
       </main>
+      <Footer />
     </>
   )
 }

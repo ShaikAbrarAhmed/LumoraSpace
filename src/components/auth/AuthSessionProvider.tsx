@@ -1,6 +1,7 @@
 "use client";
 
 import { SessionProvider } from "next-auth/react";
+import { MotionConfig } from "framer-motion";
 import { MembershipProvider } from "./MembershipContext";
 
 export default function AuthSessionProvider({
@@ -10,7 +11,9 @@ export default function AuthSessionProvider({
 }) {
   return (
     <SessionProvider>
-      <MembershipProvider>{children}</MembershipProvider>
+      <MotionConfig reducedMotion="user">
+        <MembershipProvider>{children}</MembershipProvider>
+      </MotionConfig>
     </SessionProvider>
   );
 }
