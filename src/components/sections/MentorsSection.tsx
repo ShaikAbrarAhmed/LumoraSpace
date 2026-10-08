@@ -38,20 +38,11 @@ const linkClass =
 export default function MentorsSection() {
   return (
     <>
-      {/* Hero */}
-      <section className="page-header">
-        <div className="container-page">
-          <SectionHeading
-            as="h1"
-            eyebrow="Mentors"
-            title="Learn from people who do the work."
-            lead={`Practitioners from ${mentorCompanies}, working across product, software, marketing and data science.`}
-          />
-        </div>
-      </section>
-
-      {/* Mentor profiles: one row that slides sideways as the page scrolls */}
-      <MentorsScroller mentors={mentors} />
+      {/* Mentors first: the heading and the row of profiles share the opening screen */}
+      <MentorsScroller
+        mentors={mentors}
+        lead={`Practitioners from ${mentorCompanies}, working across product, software, marketing and data science.`}
+      />
 
       {/* How mentorship works: heading beside a short list */}
       <section className="section-y border-t border-white/[0.06] bg-[#08080A]">

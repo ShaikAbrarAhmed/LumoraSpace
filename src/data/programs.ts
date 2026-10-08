@@ -97,7 +97,7 @@ export const programs: Record<string, Program> = {
     fee: "₹4,999 + GST",
     feeAmount: 4999,
     showCurriculum: false,
-    promotionalGraphic: "/programs/mern-stack-gen-ai.jpg",
+    promotionalGraphic: "/programs/mern-stack-gen-ai-cover.jpg",
     brochureUrl: "/brochures/mern-genai.pdf",
     overview: {
       whatIsIt: "A hands-on program in full-stack web development. You build complete systems end to end, from the interface to the database and deployment.",
@@ -363,7 +363,7 @@ export const programs: Record<string, Program> = {
     fee: "₹4,999 + GST",
     feeAmount: 4999,
     showCurriculum: false,
-    promotionalGraphic: "/programs/data-analytics-gen-ai.jpg",
+    promotionalGraphic: "/programs/data-analytics-gen-ai-cover.jpg",
     overview: {
       whatIsIt: "A practical program for beginners and aspiring analysts. You learn analytical thinking, database querying, data visualization and business intelligence, and use them to make data-driven decisions.",
       whatYouWorkOn: "From writing complex SQL queries and cleaning raw datasets to building interactive Power BI dashboards and automating analysis with Python and AI tooling.",
