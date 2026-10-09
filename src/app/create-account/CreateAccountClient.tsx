@@ -1,484 +1,425 @@
-"use client";
+"use client"
 
-import React, { useState, useEffect, Suspense } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { useSession, signIn } from "next-auth/react";
-import { useRouter, useSearchParams } from "next/navigation";
-import Link from "next/link";
-import { 
-  Mail, 
-  Lock, 
-  User, 
-  AlertCircle, 
-  Check, 
-  Paintbrush, 
-  Zap, 
-  Ruler, 
-  Cpu, 
-  Smartphone, 
-  Box 
-} from "lucide-react";
-import { Logo } from "@/components/Logo";
+import { useEffect, useState, type FormEvent, type ReactNode } from "react"
+import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { signIn, useSession } from "next-auth/react"
+import { AlertCircle, ArrowRight, ArrowUpRight, Check, Loader2 } from "lucide-react"
+import { PasswordInput } from "@/components/ui/password-input"
+import { SectionHeading } from "@/components/ui/section-heading"
+import { AuthDivider, GoogleSignInButton } from "@/components/auth/SignInButton"
+import { getPostAuthRedirect } from "@/components/auth/MembershipContext"
+import { PASSWORD_RULES, SignupSchema, type SignupField } from "@/lib/schemas/auth"
+import { ARENA, CAREERS, EDU } from "@/lib/site"
+import { cn } from "@/lib/utils"
 
-const interestsList = [
-  { id: "frontend", name: "Frontend Mastery", icon: Paintbrush },
-  { id: "backend", name: "Backend Engineering", icon: Zap },
-  { id: "uiux", name: "UI/UX & Design Systems", icon: Ruler },
-  { id: "ai", name: "AI & Neural Networks", icon: Cpu },
-  { id: "mobile", name: "Mobile App Architectures", icon: Smartphone },
-  { id: "pm", name: "Product Engineering", icon: Box }
-];
+type Field = SignupField | "confirmPassword"
+type FieldErrors = Partial<Record<Field, string>>
+type SignupResponse = { error?: string; code?: string; fields?: Partial<Record<SignupField, string[]>> }
 
-function CreateAccountContent() {
-  const { status } = useSession();
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  
-  // States
-  const [mode, setMode] = useState<"signup" | "welcome">("signup");
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [errorMsg, setErrorMsg] = useState("");
-  
-  const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
-  const [profileSaving, setProfileSaving] = useState(false);
-  const [profileSaved, setProfileSaved] = useState(false);
+const FIELD_ORDER: Field[] = ["name", "email", "password", "confirmPassword"]
+const fieldId = (field: Field) => `create-account-${field}`
+const errorId = (field: Field) => `${fieldId(field)}-error`
 
-  // Progressive Loading Simulation
-  const [loadingStep, setLoadingStep] = useState<number | null>(null);
-  const loadingMessages = [
-    "Establishing secure network link...",
-    "Provisioning sandbox ecosystem...",
-    "Aligning community cohorts...",
-    "Welcome to LumoraSpace!"
-  ];
+const labelClass = "block font-heading text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground"
+const fieldClass =
+  "block h-12 w-full rounded-xl border border-white/[0.1] bg-[#111214] px-4 text-base text-headings placeholder:text-[#808080] transition-colors duration-200 hover:border-white/20 focus:border-white/60 focus:outline-none focus:ring-2 focus:ring-white/15 aria-[invalid=true]:border-red-400/70 sm:text-sm"
+const fieldErrorClass = "text-[13px] leading-snug text-red-300"
+const textLinkClass =
+  "text-headings underline decoration-white/25 underline-offset-4 transition-colors hover:decoration-white/70"
 
-  // Sync mode with URL query params
-  useEffect(() => {
-    const urlMode = searchParams.get("mode");
-    if (urlMode === "welcome") {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setMode("welcome");
-    } else {
-      setMode("signup");
-    }
-  }, [searchParams]);
+const layoutClass =
+  "container-page page-header grid gap-8 animate-in fade-in slide-in-from-bottom-3 duration-700 ease-out sm:gap-12 lg:grid-cols-12 lg:gap-x-8"
+const headingColClass = "lg:col-span-5 lg:sticky lg:top-32 lg:self-start"
+const mainColClass = "w-full max-w-lg lg:col-span-6 lg:col-start-7 lg:max-w-none xl:col-span-5 xl:col-start-8"
 
-  // If already authenticated and not in welcome page, redirect
-  useEffect(() => {
-    if (status === "authenticated" && mode !== "welcome") {
-      router.push("/");
-    }
-  }, [status, mode, router]);
+const NEXT_STEPS = [
+  { title: "Programs", description: "See the current mentor-led programs and apply.", href: "/cohorts" },
+  { title: EDU.name, description: "Live, guided courses with a certificate on completion.", href: EDU.home, host: EDU.host },
+  { title: ARENA.name, description: "Team hackathons and seasonal solo challenges.", href: ARENA.home, host: ARENA.host },
+  { title: CAREERS.name, description: "Verified internships with mentorship and real projects.", href: CAREERS.home, host: CAREERS.host },
+]
 
-  const handleGoogleSignIn = () => {
-    const pendingAction = localStorage.getItem("pending_action");
-    signIn("google", { 
-      callbackUrl: pendingAction ? "/cohorts/join" : "/create-account?mode=welcome" 
-    });
-  };
-
-  // Form submit handler
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setErrorMsg("");
-
-    if (!email || !password || !name || !confirmPassword) {
-      setErrorMsg("Please fill out all fields.");
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      setErrorMsg("Passwords do not match.");
-      return;
-    }
-
-    setLoadingStep(0);
-    const interval = setInterval(() => {
-      setLoadingStep((prev) => {
-        if (prev === null) return 0;
-        if (prev < loadingMessages.length - 1) {
-          return prev + 1;
-        }
-        clearInterval(interval);
-        return prev;
-      });
-    }, 1000);
-
-    try {
-      const signupRes = await fetch("/api/signup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password }),
-      });
-
-      const signupData = await signupRes.json();
-      
-      if (!signupRes.ok) {
-        clearInterval(interval);
-        setLoadingStep(null);
-        setErrorMsg(signupData.error || "Failed to create account. Please try again.");
-        return;
-      }
-
-      const authRes = await signIn("credentials", {
-        email,
-        password,
-        redirect: false,
-      });
-
-      clearInterval(interval);
-      setLoadingStep(null);
-
-      if (authRes?.error) {
-        setErrorMsg("Account created, but sign-in failed. Please login manually.");
-        router.push("/signin");
-      } else {
-        setMode("welcome");
-      }
-    } catch (err) {
-      clearInterval(interval);
-      setLoadingStep(null);
-      console.error(err);
-      setErrorMsg("An unexpected server error occurred. Please try again later.");
-    }
-  };
-
-  const handleToggleInterest = (interestName: string) => {
-    setSelectedInterests(prev => 
-      prev.includes(interestName)
-        ? prev.filter(i => i !== interestName)
-        : [...prev, interestName]
-    );
-  };
-
-  const handleSaveProfile = async () => {
-    setProfileSaving(true);
-    try {
-      await new Promise(resolve => setTimeout(resolve, 1200));
-      setProfileSaved(true);
-      setProfileSaving(false);
-      
-      setTimeout(() => {
-        router.push("/");
-      }, 1000);
-    } catch (e) {
-      console.error(e);
-      setProfileSaving(false);
-      router.push("/");
-    }
-  };
-
+function StatusLine({ children }: { children: ReactNode }) {
   return (
-    <div className="min-h-screen w-full flex flex-col items-center justify-center bg-[#050505] text-[#FFFFFF] px-6 py-12 relative overflow-hidden font-sans select-none">
-      {/* Background soft radial gradient */}
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.015)_0%,transparent_80%)] pointer-events-none" />
-
-      {/* Simulated Onboarding Progress Blocker */}
-      <AnimatePresence>
-        {loadingStep !== null && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="absolute inset-0 bg-[#050505]/95 z-50 flex flex-col items-center justify-center p-8 text-center"
-          >
-            <div className="relative w-12 h-12 mb-6">
-              <div className="absolute inset-0 border-2 border-white/5 rounded-full" />
-              <div className="absolute inset-0 border-2 border-white border-t-transparent rounded-full animate-spin" />
-            </div>
-            <AnimatePresence mode="wait">
-              <motion.p
-                key={loadingStep}
-                initial={{ opacity: 0, y: 5 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -5 }}
-                transition={{ duration: 0.2 }}
-                className="text-xs tracking-widest font-heading font-medium text-[#A1A1AA] uppercase"
-              >
-                {loadingMessages[loadingStep]}
-              </motion.p>
-            </AnimatePresence>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <div className="w-full max-w-sm flex flex-col items-center space-y-8 z-10">
-        
-        {/* Logo */}
-        <Link href="/" className="flex items-center gap-2.5 group">
-          <Logo
-            variant="primary"
-            size="md"
-            flat
-            className="transition-transform duration-300 group-hover:scale-[1.02]"
-          />
-        </Link>
-
-        <AnimatePresence mode="wait">
-          {mode === "welcome" ? (
-            <motion.div
-              key="welcome-flow"
-              initial={{ opacity: 0, scale: 0.98 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.98 }}
-              className="w-full flex flex-col items-center space-y-6"
-            >
-              {/* Title & Copy */}
-              <div className="text-center space-y-2.5">
-                <h1 className="text-3xl md:text-4xl font-fancy font-light text-white tracking-normal leading-none">
-                  Welcome to LumoraSpace
-                </h1>
-                <p className="text-xs text-[#A1A1AA] leading-relaxed max-w-[280px] mx-auto font-sans font-light">
-                  You&apos;re officially part of the ecosystem. Customize your learning focus profile.
-                </p>
-              </div>
-
-              {/* Preferences Form */}
-              <div className="w-full space-y-6">
-                <div className="space-y-3">
-                  <span className="text-[9px] font-semibold text-[#A1A1AA] uppercase tracking-[0.15em] font-heading block">
-                    Select Interest Areas
-                  </span>
-                  
-                  {profileSaved ? (
-                    <motion.div 
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      className="flex flex-col items-center justify-center py-8 text-center space-y-3 bg-[#111214] border border-white/[0.08] rounded-lg"
-                    >
-                      <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">
-                        <Check className="w-4 h-4 text-white" />
-                      </div>
-                      <h5 className="text-xs font-semibold font-heading uppercase tracking-wider text-white">Profile Configured!</h5>
-                      <p className="text-xs text-[#A1A1AA] font-light">Redirecting to your home workspace...</p>
-                    </motion.div>
-                  ) : (
-                    <div className="grid grid-cols-1 gap-2.5">
-                      {interestsList.map((interest) => {
-                        const isSelected = selectedInterests.includes(interest.name);
-                        return (
-                          <button
-                            key={interest.id}
-                            type="button"
-                            onClick={() => handleToggleInterest(interest.name)}
-                            className={`w-full px-4 py-3.5 rounded-lg border text-xs flex items-center justify-between transition-all cursor-pointer ${
-                              isSelected
-                                ? "bg-white border-white text-black font-semibold"
-                                : "bg-[#111214] border-white/[0.08] text-[#A1A1AA] font-medium hover:text-white hover:border-white/20"
-                            }`}
-                          >
-                            <div className="flex items-center gap-3">
-                              <interest.icon className={`w-4 h-4 shrink-0 ${isSelected ? "text-black" : "text-[#A1A1AA]/60"}`} />
-                              <span className="font-heading tracking-wide uppercase text-[9px]">{interest.name}</span>
-                            </div>
-                            {isSelected && <Check className="w-3.5 h-3.5 text-black shrink-0" />}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-
-                {!profileSaved && (
-                  <div className="flex flex-col gap-3">
-                    <button
-                      type="button"
-                      disabled={profileSaving}
-                      onClick={handleSaveProfile}
-                      className="w-full bg-white hover:bg-[#F5F5F5] text-black font-heading font-semibold text-[10px] tracking-wider uppercase py-3.5 rounded-lg flex items-center justify-center gap-1.5 transition-all duration-200 active:translate-y-px cursor-pointer disabled:opacity-50"
-                    >
-                      {profileSaving ? (
-                        <div className="w-3.5 h-3.5 border-2 border-black border-t-transparent rounded-full animate-spin" />
-                      ) : (
-                        "Save Profile & Set Off"
-                      )}
-                    </button>
-                    
-                    <button
-                      type="button"
-                      onClick={() => router.push("/")}
-                      className="w-full bg-transparent hover:bg-white/[0.03] border border-white/[0.08] text-[#A1A1AA] hover:text-white font-heading font-semibold text-[10px] tracking-wider uppercase py-3.5 rounded-lg transition-all duration-200 active:translate-y-px cursor-pointer"
-                    >
-                      Skip For Now
-                    </button>
-                  </div>
-                )}
-              </div>
-            </motion.div>
-          ) : (
-            <motion.div
-              key="signup-flow"
-              initial={{ opacity: 0, scale: 0.98 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.98 }}
-              className="w-full flex flex-col items-center space-y-6"
-            >
-              {/* Title & Copy */}
-              <div className="text-center space-y-2.5">
-                <h1 className="text-3xl md:text-4xl font-fancy font-light text-white tracking-normal leading-none">
-                  Begin Your Journey
-                </h1>
-                <p className="text-xs text-[#A1A1AA] leading-relaxed max-w-[280px] mx-auto font-sans font-light">
-                  Join builders choosing direction over confusion.
-                </p>
-              </div>
-
-              {/* LumoraSpace Pillars Badges */}
-              <div className="flex flex-wrap items-center justify-center gap-1.5 py-1">
-                {["Direction", "Mentorship", "Accountability", "Community"].map((pillar) => (
-                  <span 
-                    key={pillar}
-                    className="px-2.5 py-1 text-[8px] font-semibold tracking-[0.18em] uppercase text-[#A1A1AA] bg-[#111214] border border-white/[0.06] rounded-full font-heading"
-                  >
-                    {pillar}
-                  </span>
-                ))}
-              </div>
-
-              {/* Form Container */}
-              <div className="w-full space-y-6">
-                {errorMsg && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -5 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="p-3 bg-red-950/20 border border-red-900/30 text-red-400 rounded-lg text-xs font-sans flex items-start gap-2.5"
-                  >
-                    <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                    <span>{errorMsg}</span>
-                  </motion.div>
-                )}
-
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  
-                  {/* Name */}
-                  <div className="space-y-2">
-                    <label className="text-[9px] font-semibold text-[#A1A1AA] uppercase tracking-[0.15em] font-heading block">
-                      Name
-                    </label>
-                    <div className="relative">
-                      <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#A1A1AA]/50" />
-                      <input
-                        type="text"
-                        required
-                        placeholder="LumoraSpace"
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        className="w-full pl-11 pr-4 py-3 text-xs rounded-lg border border-white/[0.08] bg-[#111214] text-white placeholder-[#A1A1AA]/30 focus:outline-none focus:border-white/30 focus:ring-1 focus:ring-white/10 transition-all font-sans font-light"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Email Address */}
-                  <div className="space-y-2">
-                    <label className="text-[9px] font-semibold text-[#A1A1AA] uppercase tracking-[0.15em] font-heading block">
-                      Email Address
-                    </label>
-                    <div className="relative">
-                      <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#A1A1AA]/50" />
-                      <input
-                        type="email"
-                        required
-                        placeholder="lumoraspace@gmail.com"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        className="w-full pl-11 pr-4 py-3 text-xs rounded-lg border border-white/[0.08] bg-[#111214] text-white placeholder-[#A1A1AA]/30 focus:outline-none focus:border-white/30 focus:ring-1 focus:ring-white/10 transition-all font-sans font-light"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Password */}
-                  <div className="space-y-2">
-                    <label className="text-[9px] font-semibold text-[#A1A1AA] uppercase tracking-[0.15em] font-heading block">
-                      Password
-                    </label>
-                    <div className="relative">
-                      <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#A1A1AA]/50" />
-                      <input
-                        type="password"
-                        required
-                        placeholder="••••••••"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        className="w-full pl-11 pr-4 py-3 text-xs rounded-lg border border-white/[0.08] bg-[#111214] text-white placeholder-[#A1A1AA]/30 focus:outline-none focus:border-white/30 focus:ring-1 focus:ring-white/10 transition-all font-sans font-light"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Confirm Password */}
-                  <div className="space-y-2">
-                    <label className="text-[9px] font-semibold text-[#A1A1AA] uppercase tracking-[0.15em] font-heading block">
-                      Confirm Password
-                    </label>
-                    <div className="relative">
-                      <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#A1A1AA]/50" />
-                      <input
-                        type="password"
-                        required
-                        placeholder="••••••••"
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                        className="w-full pl-11 pr-4 py-3 text-xs rounded-lg border border-white/[0.08] bg-[#111214] text-white placeholder-[#A1A1AA]/30 focus:outline-none focus:border-white/30 focus:ring-1 focus:ring-white/10 transition-all font-sans font-light"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Submit Button */}
-                  <button
-                    type="submit"
-                    className="w-full mt-2 bg-white hover:bg-[#F5F5F5] text-black font-heading font-semibold text-[10px] tracking-wider uppercase py-3.5 rounded-lg flex items-center justify-center gap-1.5 transition-all duration-200 active:translate-y-px cursor-pointer"
-                  >
-                    Become An Early Member
-                  </button>
-                </form>
-
-                {/* Social Login */}
-                <div className="relative flex py-2 items-center">
-                  <div className="flex-grow border-t border-white/[0.06]" />
-                  <span className="flex-shrink mx-4 text-[9px] font-semibold text-[#A1A1AA]/40 uppercase tracking-widest font-heading">
-                    Or
-                  </span>
-                  <div className="flex-grow border-t border-white/[0.06]" />
-                </div>
-
-                <button
-                  type="button"
-                  onClick={handleGoogleSignIn}
-                  className="w-full bg-[#111214] hover:bg-white/[0.03] border border-white/[0.08] text-white font-heading font-semibold text-[10px] tracking-wider uppercase py-3.5 rounded-lg flex items-center justify-center gap-2.5 transition-all duration-200 active:translate-y-px cursor-pointer"
-                >
-                  <svg className="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24">
-                    <path
-                      fill="currentColor"
-                      d="M12.24 10.285V14.4h6.887c-.275 1.565-1.88 4.604-6.887 4.604-4.33 0-7.859-3.578-7.859-8s3.529-8 7.859-8c2.46 0 4.105 1.025 5.047 1.926l3.227-3.107C18.29 1.905 15.42 1 12.24 1 6.033 1 12.24s5.033 11.24 11.24 11.24c6.478 0 10.793-4.537 10.793-10.985 0-.74-.08-1.302-.177-1.854H12.24z"
-                    />
-                  </svg>
-                  Continue with Google
-                </button>
-              </div>
-
-              {/* Redirect to signin */}
-              <div className="text-center pt-2">
-                <p className="text-xs text-[#A1A1AA] font-light">Already have an account? <Link href="/signin" className="text-white hover:underline transition-colors font-semibold">Sign In</Link></p>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-      </div>
+    <div className="container-page page-header flex min-h-[60dvh] items-center">
+      <p role="status" className="flex items-center gap-3 text-[15px] text-muted-foreground">
+        <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+        {children}
+      </p>
     </div>
-  );
+  )
 }
 
-export default function CreateAccountPage() {
+function Welcome({ email }: { email?: string | null }) {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-[#050505] flex items-center justify-center">
-        <div className="w-6 h-6 border-2 border-white/10 border-t-white rounded-full animate-spin" />
+    <div className={layoutClass}>
+      <SectionHeading
+        as="h1"
+        title="You're in"
+        lead={
+          <>
+            Your LumoraSpace account is ready.
+            {email && (
+              <>
+                {" "}
+                Signed in as <span className="text-headings [overflow-wrap:anywhere]">{email}</span>.
+              </>
+            )}
+          </>
+        }
+        className={headingColClass}
+      />
+
+      <div className={mainColClass}>
+        <h2 className="font-heading text-lg font-medium text-headings">Where to next</h2>
+        <ul className="mt-4 border-t border-white/[0.08]">
+          {NEXT_STEPS.map((step) => {
+            const external = Boolean(step.host)
+            const content = (
+              <>
+                <span className="min-w-0">
+                  <span className="block font-heading text-lg font-medium text-headings">{step.title}</span>
+                  <span className="mt-1 block text-[15px] leading-relaxed text-muted-foreground">{step.description}</span>
+                  {step.host && <span className="mt-2 block text-xs text-muted-foreground">{step.host}</span>}
+                </span>
+                {external ? (
+                  <ArrowUpRight
+                    aria-hidden
+                    className="mt-1 h-4 w-4 text-muted-foreground transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-headings"
+                  />
+                ) : (
+                  <ArrowRight
+                    aria-hidden
+                    className="mt-1 h-4 w-4 text-muted-foreground transition-transform duration-200 group-hover:translate-x-0.5 group-hover:text-headings"
+                  />
+                )}
+              </>
+            )
+            const rowClass = "group grid grid-cols-[1fr_auto] items-start gap-x-6 py-6"
+            return (
+              <li key={step.href} className="border-b border-white/[0.08]">
+                {external ? (
+                  <a href={step.href} target="_blank" rel="noopener noreferrer" className={rowClass}>
+                    {content}
+                    <span className="sr-only"> (opens in a new tab)</span>
+                  </a>
+                ) : (
+                  <Link href={step.href} className={rowClass}>
+                    {content}
+                  </Link>
+                )}
+              </li>
+            )
+          })}
+        </ul>
+
+        <Link href="/" className="btn-secondary mt-10 h-12 w-full sm:w-auto">
+          Go to the homepage
+        </Link>
       </div>
-    }>
-      <CreateAccountContent />
-    </Suspense>
-  );
+    </div>
+  )
+}
+
+export default function CreateAccountClient({ welcome }: { welcome: boolean }) {
+  const { data: session, status } = useSession()
+  const router = useRouter()
+
+  const [values, setValues] = useState({ name: "", email: "", password: "", confirmPassword: "" })
+  const [errors, setErrors] = useState<FieldErrors>({})
+  const [confirmTouched, setConfirmTouched] = useState(false)
+  const [formError, setFormError] = useState("")
+  const [formErrorLink, setFormErrorLink] = useState<"signin" | null>(null)
+  const [submitting, setSubmitting] = useState(false)
+  const [justSignedUp, setJustSignedUp] = useState(false)
+
+  const showWelcome = status === "authenticated" && (welcome || justSignedUp)
+  const alreadySignedIn = status === "authenticated" && !showWelcome && !submitting
+
+  // Signed-in visitors who didn't just sign up have nothing to do here.
+  useEffect(() => {
+    if (alreadySignedIn) router.replace("/")
+  }, [alreadySignedIn, router])
+
+  const setValue = (field: Field, value: string) => {
+    setValues((prev) => ({ ...prev, [field]: value }))
+    if (errors[field]) setErrors((prev) => ({ ...prev, [field]: undefined }))
+  }
+
+  const mismatch =
+    confirmTouched && values.confirmPassword.length > 0 && values.confirmPassword !== values.password
+      ? "Passwords do not match."
+      : undefined
+  const errorFor = (field: Field) => errors[field] ?? (field === "confirmPassword" ? mismatch : undefined)
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    setFormError("")
+    setFormErrorLink(null)
+
+    // Same rules as the server, so most mistakes are caught before a round trip.
+    const next: FieldErrors = {}
+    const parsed = SignupSchema.safeParse({ name: values.name, email: values.email, password: values.password })
+    if (!parsed.success) {
+      for (const issue of parsed.error.issues) {
+        const key = issue.path[0] as SignupField
+        if (!next[key]) next[key] = issue.message
+      }
+    }
+    if (!values.confirmPassword) next.confirmPassword = "Re-enter your password."
+    else if (values.confirmPassword !== values.password) next.confirmPassword = "Passwords do not match."
+
+    setErrors(next)
+    const firstInvalid = FIELD_ORDER.find((field) => next[field])
+    if (firstInvalid) {
+      // Focus after the re-render, so the field already carries aria-invalid and aria-describedby and its error is read out.
+      requestAnimationFrame(() => document.getElementById(fieldId(firstInvalid))?.focus())
+      return
+    }
+
+    const email = values.email.trim().toLowerCase()
+    setSubmitting(true)
+
+    try {
+      const response = await fetch("/api/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: values.name.trim(), email, password: values.password }),
+      })
+      const data: SignupResponse = await response.json().catch(() => ({}))
+
+      if (!response.ok) {
+        if (response.status === 429) {
+          setFormError("Too many attempts. Wait a minute and try again.")
+        } else {
+          setFormError(data.error || "We couldn't create your account. Please try again.")
+        }
+        if (data.fields) {
+          setErrors({
+            name: data.fields.name?.[0],
+            email: data.fields.email?.[0],
+            password: data.fields.password?.[0],
+          })
+        }
+        if (data.code === "EMAIL_TAKEN") setFormErrorLink("signin")
+        setSubmitting(false)
+        return
+      }
+
+      const result = await signIn("credentials", { email, password: values.password, redirect: false })
+      if (!result || result.error) {
+        setFormError("Your account was created, but we couldn't sign you in automatically.")
+        setFormErrorLink("signin")
+        setSubmitting(false)
+        return
+      }
+
+      setJustSignedUp(true)
+      setSubmitting(false)
+    } catch (err) {
+      console.error(err)
+      setFormError("We couldn't reach the server. Check your connection and try again.")
+      setSubmitting(false)
+    }
+  }
+
+  if (showWelcome) return <Welcome email={session?.user?.email} />
+  if (welcome && status === "loading") return <StatusLine>Loading your account…</StatusLine>
+  if (alreadySignedIn) return <StatusLine>You&apos;re already signed in. Taking you home…</StatusLine>
+
+  const describedBy = (field: Field, extra?: string) =>
+    [extra, errorFor(field) ? errorId(field) : undefined].filter(Boolean).join(" ") || undefined
+
+  const renderError = (field: Field) =>
+    errorFor(field) ? (
+      <p id={errorId(field)} className={fieldErrorClass}>
+        {errorFor(field)}
+      </p>
+    ) : null
+
+  return (
+    <div className={layoutClass}>
+      <SectionHeading
+        as="h1"
+        title="Create your account"
+        lead="Accounts are free. You don't need one to apply for a program."
+        className={headingColClass}
+      />
+
+      <div className={mainColClass}>
+        <div className="sm:rounded-2xl sm:border sm:border-white/[0.08] sm:bg-[#0B0B0C] sm:p-10">
+          {formError && (
+            <div
+              role="alert"
+              className="mb-6 flex items-start gap-3 rounded-xl border border-red-400/25 bg-red-500/[0.06] p-4 text-sm leading-relaxed text-red-200"
+            >
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-300" aria-hidden />
+              <span>
+                {formError}
+                {formErrorLink === "signin" && (
+                  <>
+                    {" "}
+                    <Link href="/signin" className={textLinkClass}>
+                      Sign in instead
+                    </Link>
+                  </>
+                )}
+              </span>
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} noValidate className="space-y-6">
+            <div className="space-y-2.5">
+              <label htmlFor={fieldId("name")} className={labelClass}>
+                Full name
+              </label>
+              <input
+                id={fieldId("name")}
+                name="name"
+                type="text"
+                autoComplete="name"
+                required
+                placeholder="Your full name"
+                value={values.name}
+                onChange={(e) => setValue("name", e.target.value)}
+                aria-invalid={errorFor("name") ? true : undefined}
+                aria-describedby={describedBy("name")}
+                className={fieldClass}
+              />
+              {renderError("name")}
+            </div>
+
+            <div className="space-y-2.5">
+              <label htmlFor={fieldId("email")} className={labelClass}>
+                Email
+              </label>
+              <input
+                id={fieldId("email")}
+                name="email"
+                type="email"
+                autoComplete="email"
+                autoCapitalize="none"
+                spellCheck={false}
+                required
+                placeholder="you@example.com"
+                value={values.email}
+                onChange={(e) => setValue("email", e.target.value)}
+                aria-invalid={errorFor("email") ? true : undefined}
+                aria-describedby={describedBy("email")}
+                className={fieldClass}
+              />
+              {renderError("email")}
+            </div>
+
+            <div className="space-y-2.5">
+              <label htmlFor={fieldId("password")} className={labelClass}>
+                Password
+              </label>
+              <PasswordInput
+                id={fieldId("password")}
+                name="password"
+                autoComplete="new-password"
+                required
+                placeholder="Create a password"
+                value={values.password}
+                onChange={(e) => setValue("password", e.target.value)}
+                aria-invalid={errorFor("password") ? true : undefined}
+                aria-describedby={describedBy("password", "create-account-password-rules")}
+                className={fieldClass}
+              />
+              <ul id="create-account-password-rules" className="grid grid-cols-2 gap-x-3 gap-y-2 pt-1.5">
+                {PASSWORD_RULES.map((rule) => {
+                  const met = rule.test(values.password)
+                  return (
+                    <li
+                      key={rule.id}
+                      className={cn(
+                        "flex items-center gap-2.5 text-[13px] transition-colors duration-200",
+                        met ? "text-headings" : "text-muted-foreground"
+                      )}
+                    >
+                      <span
+                        aria-hidden
+                        className={cn(
+                          "flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition-colors duration-200",
+                          met ? "border-white bg-white text-[#050505]" : "border-white/25"
+                        )}
+                      >
+                        {met && <Check className="h-2.5 w-2.5" strokeWidth={3.5} />}
+                      </span>
+                      {rule.label}
+                      <span className="sr-only">{met ? " (done)" : " (missing)"}</span>
+                    </li>
+                  )
+                })}
+              </ul>
+              {renderError("password")}
+            </div>
+
+            <div className="space-y-2.5">
+              <label htmlFor={fieldId("confirmPassword")} className={labelClass}>
+                Confirm password
+              </label>
+              <PasswordInput
+                id={fieldId("confirmPassword")}
+                name="confirmPassword"
+                autoComplete="new-password"
+                required
+                placeholder="Re-enter your password"
+                value={values.confirmPassword}
+                onChange={(e) => setValue("confirmPassword", e.target.value)}
+                onBlur={() => setConfirmTouched(true)}
+                aria-invalid={errorFor("confirmPassword") ? true : undefined}
+                aria-describedby={describedBy("confirmPassword")}
+                className={fieldClass}
+              />
+              {renderError("confirmPassword")}
+            </div>
+
+            <div className="space-y-4 pt-2">
+              <button
+                type="submit"
+                disabled={submitting}
+                className="btn-primary h-12 w-full gap-2 text-[#050505] disabled:pointer-events-none disabled:opacity-70"
+              >
+                {submitting && <Loader2 className="h-4 w-4 animate-spin" aria-hidden />}
+                {submitting ? "Creating your account…" : "Create account"}
+              </button>
+              <p className="text-[13px] leading-relaxed text-muted-foreground">
+                By creating an account you agree to the{" "}
+                <Link href="/terms" className={textLinkClass}>
+                  Terms of service
+                </Link>{" "}
+                and{" "}
+                <Link href="/privacy" className={textLinkClass}>
+                  Privacy policy
+                </Link>
+                .
+              </p>
+            </div>
+          </form>
+
+          <div className="my-8">
+            <AuthDivider />
+          </div>
+
+          <GoogleSignInButton
+            disabled={submitting}
+            getCallbackUrl={() => getPostAuthRedirect("/create-account?mode=welcome")}
+          />
+        </div>
+
+        <p className="mt-8 text-[15px] text-muted-foreground sm:text-center">
+          Already have an account?{" "}
+          <Link
+            href="/signin"
+            className="inline-flex min-h-11 items-center font-medium text-headings underline decoration-white/25 underline-offset-4 transition-colors hover:decoration-white/70"
+          >
+            Sign in
+          </Link>
+        </p>
+      </div>
+    </div>
+  )
 }

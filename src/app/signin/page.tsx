@@ -1,38 +1,47 @@
-import { Metadata } from "next";
-import SignInPage from "./SignInClient";
+import { Navbar } from "@/components/Navbar"
+import { Footer } from "@/components/Footer"
+import { SectionHeading } from "@/components/ui/section-heading"
+import { pageMetadata } from "@/lib/metadata"
+import SignInForm from "./SignInClient"
 
-export const metadata: Metadata = {
-  title: "Sign In",
-  description: "Access your LumoraSpace account to collaborate with student builders, participate in developer cohorts, and connect with engineering mentors.",
-  robots: {
-    index: false,
-    follow: false,
-  },
-  alternates: {
-    canonical: "/signin",
-  },
-  openGraph: {
-    type: "website",
-    url: "https://lumora.space/signin",
-    title: "Sign In | LumoraSpace Space",
-    description: "Access your LumoraSpace account to collaborate with student builders, participate in developer cohorts, and connect with engineering mentors.",
-    images: [
-      {
-        url: "/logo4.png",
-        width: 1200,
-        height: 630,
-        alt: "LumoraSpace Sign In",
-      },
-    ],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Sign In | LumoraSpace Space",
-    description: "Access your LumoraSpace account to collaborate with student builders, participate in developer cohorts, and connect with engineering mentors.",
-    images: ["/logo4.png"],
-  },
-};
+export const metadata = pageMetadata({
+  title: "Sign in",
+  description: "Sign in to your LumoraSpace account.",
+  path: "/signin",
+  noindex: true,
+})
 
-export default function Page() {
-  return <SignInPage />;
+type SignInPageProps = {
+  searchParams: Promise<Record<string, string | string[] | undefined>>
+}
+
+export default async function SignInPage({ searchParams }: SignInPageProps) {
+  // NextAuth sends OAuth and credential errors back here as ?error=Code.
+  const { error } = await searchParams
+  const errorCode = typeof error === "string" ? error : undefined
+
+  return (
+    <>
+      <Navbar />
+      <main id="main" className="relative isolate overflow-hidden bg-background">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[36rem] bg-[radial-gradient(ellipse_70%_55%_at_50%_0%,rgba(255,255,255,0.06),transparent_70%)]"
+        />
+        <div className="container-page page-header grid gap-8 animate-in fade-in slide-in-from-bottom-3 duration-700 ease-out sm:gap-12 lg:grid-cols-12 lg:gap-x-8">
+          <SectionHeading
+            as="h1"
+            title="Welcome back"
+            lead="Sign in to your LumoraSpace account."
+            className="lg:col-span-5 lg:sticky lg:top-32 lg:self-start"
+          />
+
+          <div className="w-full max-w-lg lg:col-span-6 lg:col-start-7 lg:max-w-none xl:col-span-5 xl:col-start-8">
+            <SignInForm errorCode={errorCode} />
+          </div>
+        </div>
+      </main>
+      <Footer />
+    </>
+  )
 }

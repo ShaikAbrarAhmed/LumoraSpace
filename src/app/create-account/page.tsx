@@ -1,38 +1,34 @@
-import { Metadata } from "next";
-import CreateAccountPage from "./CreateAccountClient";
+import { Navbar } from "@/components/Navbar"
+import { Footer } from "@/components/Footer"
+import { pageMetadata } from "@/lib/metadata"
+import CreateAccountClient from "./CreateAccountClient"
 
-export const metadata: Metadata = {
-  title: "Create Account",
-  description: "Join the LumoraSpace student growth ecosystem. Create an account to access structured developer cohorts, build portfolios, and get direct mentorship.",
-  robots: {
-    index: false,
-    follow: false,
-  },
-  alternates: {
-    canonical: "/create-account",
-  },
-  openGraph: {
-    type: "website",
-    url: "https://lumora.space/create-account",
-    title: "Create Account | LumoraSpace Space",
-    description: "Join the LumoraSpace student growth ecosystem. Create an account to access structured developer cohorts, build portfolios, and get direct mentorship.",
-    images: [
-      {
-        url: "/logo4.png",
-        width: 1200,
-        height: 630,
-        alt: "LumoraSpace Create Account",
-      },
-    ],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Create Account | LumoraSpace Space",
-    description: "Join the LumoraSpace student growth ecosystem. Create an account to access structured developer cohorts, build portfolios, and get direct mentorship.",
-    images: ["/logo4.png"],
-  },
-};
+export const metadata = pageMetadata({
+  title: "Create account",
+  description: "Create a free LumoraSpace account.",
+  path: "/create-account",
+  noindex: true,
+})
 
-export default function Page() {
-  return <CreateAccountPage />;
+type CreateAccountPageProps = {
+  searchParams: Promise<Record<string, string | string[] | undefined>>
+}
+
+export default async function CreateAccountPage({ searchParams }: CreateAccountPageProps) {
+  // Google sign-ups land on ?mode=welcome, which shows the "You're in" step once the session exists.
+  const { mode } = await searchParams
+
+  return (
+    <>
+      <Navbar />
+      <main id="main" className="relative isolate overflow-hidden bg-background">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[36rem] bg-[radial-gradient(ellipse_70%_55%_at_50%_0%,rgba(255,255,255,0.06),transparent_70%)]"
+        />
+        <CreateAccountClient welcome={mode === "welcome"} />
+      </main>
+      <Footer />
+    </>
+  )
 }

@@ -1,5 +1,10 @@
 node_modules/
 .next/
-.env.local
-.env
+# Every env file Next.js loads (.env, .env.local, .env.production, ...). Only the template is tracked.
+.env*
+!.env.example
 tsconfig.tsbuildinfo
+# Cloudflare (OpenNext build output, local wrangler state, local secrets)
+.open-next/
+.wrangler/
+.dev.vars*

@@ -1,175 +1,194 @@
 "use client"
 
-import { motion } from "framer-motion"
+import { useEffect, useRef, type CSSProperties } from "react"
+import { preload } from "react-dom"
 import Link from "next/link"
-
-
+import { motion, useReducedMotion, useScroll, useTransform } from "framer-motion"
 import { useSession } from "next-auth/react"
 
+const WORDMARK = "LumoraSpace"
+
+// Entrance runs on CSS keyframes so the hero animates straight from the server HTML,
+// without waiting for hydration. `motion-safe:` keeps it off for reduced-motion users.
+const RISE_KEYFRAMES =
+  "@keyframes ls-hero-rise{from{opacity:0;transform:translate3d(0,var(--ls-rise,1.25rem),0)}}"
+
+const rise = "motion-safe:animate-[ls-hero-rise_1.2s_cubic-bezier(0.16,1,0.3,1)_both]"
+
+const delay = (seconds: number): CSSProperties => ({ animationDelay: `${seconds}s` })
+
+type NavigatorWithConnection = Navigator & { connection?: { saveData?: boolean; effectiveType?: string } }
+
+const SLOW_NETWORKS = ["slow-2g", "2g", "3g"]
+
+const POSTER = "/silk_flow_bg.jpg"
+
 export default function HeroSection() {
-  const { data: session } = useSession()
-  const handleExploreClick = (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.preventDefault()
-    const target = document.getElementById("problem")
-    if (target) {
-      target.scrollIntoView({ behavior: "smooth" })
+  // The poster frame is the largest paint on first load, but the browser only finds it once the
+  // video element is parsed. This hint puts it in the document head so it starts downloading early.
+  preload(POSTER, { as: "image", fetchPriority: "high" })
+
+  const { status } = useSession()
+  const isSignedIn = status === "authenticated"
+
+  const sectionRef = useRef<HTMLElement>(null)
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const reduceMotion = useReducedMotion()
+
+  // Parallax values stay bound and flatten under reduced motion, so the DOM always ends up static.
+  const { scrollYProgress } = useScroll({ target: sectionRef, offset: ["start start", "end start"] })
+  const contentY = useTransform(scrollYProgress, [0, 1], reduceMotion ? [0, 0] : [0, -140])
+  const contentOpacity = useTransform(scrollYProgress, [0, 0.6], reduceMotion ? [1, 1] : [1, 0])
+  const videoScale = useTransform(scrollYProgress, [0, 1], reduceMotion ? [1, 1] : [1, 1.08])
+
+  // Play the silk video only on tablet and desktop screens with a fast connection, when motion is welcome,
+  // data isn't being saved and the hero is on screen. Everyone else keeps the poster frame, which is the
+  // same look without the motion. With preload="none" nothing is fetched until play() is called, and the
+  // first attempt waits for the page load and an idle moment so the video never competes with JS and fonts.
+  useEffect(() => {
+    const video = videoRef.current
+    if (!video) return
+
+    const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)")
+    const smallScreenQuery = window.matchMedia("(max-width: 767px)")
+    const connection = (navigator as NavigatorWithConnection).connection
+    const saveData = Boolean(connection?.saveData)
+    const slowNet = SLOW_NETWORKS.includes(connection?.effectiveType ?? "")
+    let onScreen = true
+    let ready = false
+
+    const sync = () => {
+      if (ready && onScreen && !saveData && !slowNet && !smallScreenQuery.matches && !motionQuery.matches) {
+        video.muted = true
+        video.play().catch(() => {})
+      } else {
+        video.pause()
+      }
     }
-  }
 
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.16,
-        delayChildren: 0.45,
-      },
-    },
-  }
+    const observer = new IntersectionObserver(([entry]) => {
+      onScreen = entry.isIntersecting
+      sync()
+    })
+    observer.observe(video)
+    motionQuery.addEventListener("change", sync)
+    smallScreenQuery.addEventListener("change", sync)
 
-  const childVariants = {
-    hidden: { opacity: 0, y: 15 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: {
-        duration: 1.8,
-        ease: [0.16, 1, 0.3, 1] as const,
-      },
-    },
-  }
+    let idleHandle: number | undefined
+    let timeoutHandle: number | undefined
+    const begin = () => {
+      ready = true
+      sync()
+    }
+    const scheduleStart = () => {
+      if (typeof window.requestIdleCallback === "function") {
+        idleHandle = window.requestIdleCallback(begin)
+      } else {
+        timeoutHandle = window.setTimeout(begin, 200)
+      }
+    }
 
-  const letterContainerVariants = {
-    hidden: {},
-    visible: {
-      transition: {
-        staggerChildren: 0.08,
-      },
-    },
-  }
+    if (document.readyState === "complete") {
+      scheduleStart()
+    } else {
+      window.addEventListener("load", scheduleStart, { once: true })
+    }
 
-  const letterVariants = {
-    hidden: { opacity: 0, y: 35 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: {
-        duration: 1.4,
-        ease: [0.16, 1, 0.3, 1] as const,
-      },
-    },
-  }
+    return () => {
+      observer.disconnect()
+      motionQuery.removeEventListener("change", sync)
+      smallScreenQuery.removeEventListener("change", sync)
+      window.removeEventListener("load", scheduleStart)
+      if (idleHandle !== undefined) window.cancelIdleCallback(idleHandle)
+      if (timeoutHandle !== undefined) window.clearTimeout(timeoutHandle)
+    }
+  }, [])
 
   return (
-    <section className="relative min-h-screen w-full bg-[#050505] overflow-hidden flex flex-col justify-center py-24 select-none">
-      
-      {/* 1. Deep Atmospheric Background Glows (Extremely subtle to keep the background graphite-black) */}
-      <div
-        className="absolute inset-0 z-0 pointer-events-none"
-        style={{
-          background: "radial-gradient(circle at 50% 25%, rgba(255, 255, 255, 0.015), transparent 45%)"
-        }}
-      />
-      <div
-        className="absolute inset-0 z-0 pointer-events-none"
-        style={{
-          background: "radial-gradient(circle at 6% 50%, rgba(255, 255, 255, 0.008), transparent 30%)"
-        }}
-      />
-      <div
-        className="absolute inset-0 z-0 pointer-events-none"
-        style={{
-          background: "radial-gradient(circle at 94% 50%, rgba(255, 255, 255, 0.008), transparent 30%)"
-        }}
-      />
+    <section
+      ref={sectionRef}
+      aria-labelledby="hero-title"
+      className="relative isolate flex min-h-[100dvh] w-full flex-col overflow-hidden bg-[#050505]"
+    >
+      <style>{RISE_KEYFRAMES}</style>
 
-      {/* 2. Midground: Cinematic Text & CTA Content (z-10 layer) */}
-      <div className="relative z-10 max-w-4xl mx-auto px-6 text-center flex flex-col items-center justify-center py-12">
-        <motion.div
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-          className="flex flex-col items-center"
+      {/* Silk video: the hero's background look. */}
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10 overflow-hidden bg-[#050505]">
+        <motion.div style={{ scale: videoScale }} className="absolute inset-0 bg-[#050505]">
+          <video
+            ref={videoRef}
+            src="/silk_flow_bg.mp4"
+            poster={POSTER}
+            muted
+            loop
+            playsInline
+            preload="none"
+            tabIndex={-1}
+            className="absolute inset-0 h-full w-full object-cover opacity-30 mix-blend-screen"
+          />
+        </motion.div>
+        <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-b from-transparent to-[#050505]" />
+      </div>
+
+      <motion.div
+        style={{ y: contentY, opacity: contentOpacity }}
+        className="container-page flex flex-1 flex-col items-center justify-center pb-16 pt-24 text-center"
+      >
+        <h1
+          id="hero-title"
+          className="whitespace-nowrap font-fancy text-[clamp(3.25rem,15.5vw,9rem)] font-light leading-[0.95] tracking-[0.01em] text-headings [text-shadow:0_2px_24px_rgba(0,0,0,0.6)]"
         >
-          <motion.div
-            variants={childVariants}
-            className="flex flex-col items-center mb-10"
-          >
-            <span className="text-[10px] font-semibold text-[#A8A8A8] tracking-[0.35em] font-heading uppercase">
-              FROM CONFUSED TO CONFIDENT
-            </span>
-            <div className="w-24 h-px bg-white/20 mt-4" />
-          </motion.div>
-
-          <motion.h1
-            variants={letterContainerVariants}
-            className="text-[12vw] sm:text-7xl md:text-[6.5rem] lg:text-[7.5rem] font-fancy font-light tracking-[0.02em] leading-[0.9] text-white my-8 select-text drop-shadow-[0_2px_15px_rgba(0,0,0,0.8)] whitespace-nowrap"
-          >
-            {"LumoraSpace".split("").map((char, index) => (
-              <motion.span
+          <span className="sr-only">{WORDMARK}</span>
+          <span aria-hidden="true">
+            {WORDMARK.split("").map((char, index) => (
+              <span
                 key={index}
-                variants={letterVariants}
-                className="inline-block"
+                className={`inline-block [--ls-rise:0.35em] ${rise}`}
+                style={delay(0.2 + index * 0.06)}
               >
                 {char}
-              </motion.span>
+              </span>
             ))}
-            <span className="sr-only"> – The Student Growth Ecosystem for Ambitious Builders</span>
-          </motion.h1>
+          </span>
+        </h1>
 
-          <motion.p
-            variants={childVariants}
-            className="mt-10 text-2xl md:text-3.5xl font-fancy font-light tracking-tight text-white/95 leading-[1.35] drop-shadow-[0_1px_8px_rgba(0,0,0,0.7)]"
-          >
-            Talent exists everywhere.
-            <br />
-            <span className="italic">{"Guidance doesn't."}</span>
-          </motion.p>
+        <p
+          className={`mt-5 flex items-center gap-3 font-heading text-[0.7rem] font-medium tracking-[0.22em] text-headings/90 sm:mt-7 sm:gap-5 sm:text-base ${rise}`}
+          style={delay(0.85)}
+        >
+          <span aria-hidden="true" className="h-px w-6 bg-gradient-to-r from-transparent to-white/50 sm:w-14" />
+          <span>From Confused to Confident.</span>
+          <span aria-hidden="true" className="h-px w-6 bg-gradient-to-l from-transparent to-white/50 sm:w-14" />
+        </p>
 
-          <motion.p
-            variants={childVariants}
-            className="max-w-[480px] text-muted-foreground text-xs md:text-sm leading-relaxed font-light font-sans select-text opacity-70 tracking-wide"
-          >
-            Helping students grow through mentorship, projects, hackathons, Structured Courses and community.
-          </motion.p>
+        <p
+          className={`mt-8 font-fancy text-[1.75rem] font-light leading-[1.2] text-headings/95 sm:mt-10 sm:text-4xl ${rise}`}
+          style={delay(0.95)}
+        >
+          Talent exists everywhere.{" "}
+          <em className="block italic text-headings/75 sm:inline">{"Guidance doesn't."}</em>
+        </p>
 
-          <motion.div
-            variants={childVariants}
-            className="mt-12 flex flex-row gap-5 items-center justify-center"
-          >
-            {!session && (
-              <Link
-                href="/create-account"
-                className="h-11 px-8 rounded-full bg-white text-black font-semibold text-xs tracking-wide transition-all hover:bg-white/95 hover:shadow-[0_0_30px_rgba(255,255,255,0.15)] flex items-center justify-center gap-1.5 active:translate-y-px"
-              >
-                <span>Join LumoraSpace</span>
-                <span className="text-[14px]">→</span>
+        <div
+          className={`mt-10 flex w-full max-w-xs flex-col items-stretch gap-3 sm:w-auto sm:max-w-none sm:flex-row sm:items-center sm:gap-4 ${rise}`}
+          style={delay(1.1)}
+        >
+          {isSignedIn ? (
+            <Link href="/services" className="btn-primary">
+              Explore services
+            </Link>
+          ) : (
+            <>
+              <Link href="/create-account" className="btn-primary">
+                Join LumoraSpace
               </Link>
-            )}
-
-            <button
-              onClick={handleExploreClick}
-              className="h-11 px-8 rounded-full border border-white/12 bg-white/[0.01] text-white font-semibold text-xs tracking-wide transition-all hover:bg-white/5 hover:border-white/25 backdrop-blur-md flex items-center justify-center active:translate-y-px"
-            >
-              Explore The Vision
-            </button>
-          </motion.div>
-        </motion.div>
-      </div>
-
-      {/* 3. Background Silk Flow Video (z-0 layer behind text) */}
-      <div className="absolute inset-0 z-0 pointer-events-none select-none overflow-hidden bg-[#050505]">
-        <video
-          src="/silk_flow_bg.mp4"
-          poster="/silk_flow_bg.png"
-          autoPlay
-          loop
-          muted
-          playsInline
-          className="absolute inset-0 w-full h-full object-cover opacity-30 mix-blend-screen"
-        />
-      </div>
-
+              <Link href="/services" className="btn-secondary">
+                Explore services
+              </Link>
+            </>
+          )}
+        </div>
+      </motion.div>
     </section>
   )
 }

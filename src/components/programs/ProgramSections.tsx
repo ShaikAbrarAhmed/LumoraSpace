@@ -1,515 +1,526 @@
-"use client";
+import Image from "next/image"
+import Link from "next/link"
+import type { ReactNode } from "react"
+import { ArrowLeft, ArrowUpRight, Download, Plus } from "lucide-react"
+import { splitLabel, type Program } from "@/data/programs"
+import { CONTACT } from "@/lib/site"
+import { cn } from "@/lib/utils"
+import { Reveal } from "@/components/ui/reveal"
+import { HEADING_SIZE, SectionHeading } from "@/components/ui/section-heading"
+import { ApplyButton } from "./ApplyProvider"
+import { Money } from "./money"
+import { ScrollRail, ScrollScale } from "./scroll"
 
-import { motion, AnimatePresence } from "framer-motion";
-import Image from "next/image";
-import { 
-  FileText, Code2, Database, Terminal, Layout, Server, Shield, Zap, Rocket, LucideIcon,
-  FileSpreadsheet, BarChart3, Search, Target, LineChart, PieChart, Brain, Workflow
-} from "lucide-react";
-import type { Program } from "@/data/programs";
-import { useState } from "react";
-import { JoinProgramModal } from "./JoinProgramModal";
+/*
+ * Program detail page sections. Each section uses its own layout so the page never
+ * repeats itself: stacked hero, media with a facts strip, sticky split, mentor profile,
+ * four-column grid, timeline, centred type list, grouped columns, single-column FAQ,
+ * pricing close. Server components; only ApplyButton and the scroll helpers are client.
+ */
 
-const IconMap: Record<string, LucideIcon> = {
-  layout: Layout,
-  server: Server,
-  database: Database,
-  shield: Shield,
-  code2: Code2,
-  terminal: Terminal,
-  zap: Zap,
-  rocket: Rocket,
-  "file-spreadsheet": FileSpreadsheet,
-  "bar-chart": BarChart3,
-  search: Search,
-  target: Target,
-  "line-chart": LineChart,
-  "pie-chart": PieChart,
-  brain: Brain,
-  workflow: Workflow,
-};
+type Props = { program: Program }
 
-export function ProgramHero({ program }: { program: Program }) {
-  const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
-  const handleJoin = () => setIsJoinModalOpen(true);
-  const handleClose = () => setIsJoinModalOpen(false);
-
+function Section({
+  id,
+  tone = "base",
+  className,
+  labelledBy,
+  children,
+}: {
+  id?: string
+  tone?: "base" | "alt"
+  className?: string
+  labelledBy?: string
+  children: ReactNode
+}) {
   return (
-    <section className="relative pt-32 pb-16 md:pt-40 md:pb-24 px-6 w-full flex flex-col items-center text-center z-10 border-b border-white/5">
-      <motion.div
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8 }}
-        className="max-w-4xl"
-      >
-        <h1 className="text-5xl md:text-7xl font-fancy font-light tracking-tight text-white leading-[1.08] mb-8">
+    <section
+      id={id}
+      aria-labelledby={labelledBy}
+      className={cn(
+        "section-y scroll-mt-16 border-t border-white/[0.06]",
+        tone === "alt" ? "bg-[#08080A]" : "bg-background",
+        className,
+      )}
+    >
+      <div className="container-page">{children}</div>
+    </section>
+  )
+}
+
+function BrochureLink({ program, className }: Props & { className?: string }) {
+  if (!program.brochureUrl) return null
+  return (
+    <a href={program.brochureUrl} download className={cn("btn-secondary min-h-12 gap-2", className)}>
+      <Download aria-hidden className="size-4" />
+      Download brochure
+      <span className="font-normal text-muted-foreground">PDF</span>
+    </a>
+  )
+}
+
+/* 1. Hero: back link, title, one line, CTAs */
+export function ProgramHero({ program }: Props) {
+  return (
+    <section className="bg-background">
+      <div className="container-page page-header motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-4 motion-safe:duration-700">
+        <Link
+          href="/cohorts"
+          className="eyebrow -ml-1 inline-flex min-h-11 items-center gap-2 rounded-full px-1 transition-colors hover:text-headings"
+        >
+          <ArrowLeft aria-hidden className="size-3.5" />
+          All programs
+        </Link>
+        <h1
+          className={cn(
+            HEADING_SIZE.page,
+            "mt-5 max-w-4xl font-fancy font-light leading-[1.05] tracking-tight text-headings text-balance",
+          )}
+        >
           {program.title}
         </h1>
-
-        <p className="text-lg md:text-xl text-slate-400 font-light leading-relaxed max-w-3xl mx-auto mb-8">
+        <p className="mt-6 max-w-2xl text-[15px] leading-relaxed text-muted-foreground text-pretty sm:text-lg">
           {program.description}
         </p>
+        <div className="mt-10 flex flex-col gap-3 sm:flex-row">
+          <ApplyButton className="btn-primary min-h-12">Apply now</ApplyButton>
+          <BrochureLink program={program} />
+        </div>
+      </div>
+    </section>
+  )
+}
 
-        <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-4 text-sm text-slate-300 font-medium mb-12">
-          <div className="flex items-center gap-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-slate-500" />
-            {program.duration}
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-slate-500" />
-            {program.schedule}
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-slate-500" />
-            {program.mode}
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-slate-500" />
-            {program.fee}
+function Fact({ term, children }: { term: string; children: ReactNode }) {
+  return (
+    <div className="min-w-0">
+      <dt className="text-sm text-muted-foreground">{term}</dt>
+      <dd className="mt-1.5 text-[15px] leading-snug text-headings sm:text-base">{children}</dd>
+    </div>
+  )
+}
+
+/* 2. Poster that settles into place, then the key facts in one strip */
+export function ProgramMedia({ program }: Props) {
+  const split = splitLabel(program)
+  return (
+    <section aria-label="Program facts" className="bg-background pb-20 md:pb-28">
+      <div className="container-page">
+        {program.promotionalGraphic && (
+          <ScrollScale>
+            <div className="relative aspect-video overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0B0B0C]">
+              <Image
+                src={program.promotionalGraphic}
+                alt={`${program.title} program poster`}
+                fill
+                loading="eager"
+                fetchPriority="high"
+                sizes="(min-width: 1280px) 1216px, 100vw"
+                className="object-cover"
+              />
+            </div>
+          </ScrollScale>
+        )}
+        <dl className="mt-10 grid grid-cols-2 gap-x-6 gap-y-8 border-t border-white/[0.08] pt-8 sm:grid-cols-3 lg:grid-cols-6">
+          {program.status && <Fact term="Status">{program.status}</Fact>}
+          <Fact term="Duration">{program.duration}</Fact>
+          <Fact term="Schedule">{program.schedule}</Fact>
+          <Fact term="Format">{program.mode}</Fact>
+          {program.level && <Fact term="Level">{program.level}</Fact>}
+          <Fact term="Fee">
+            <Money>{program.fee}</Money>
+            {split && (
+              <span className="block text-sm text-muted-foreground">
+                <Money>{split}</Money>
+              </span>
+            )}
+          </Fact>
+        </dl>
+      </div>
+    </section>
+  )
+}
+
+/* 3. Sticky heading, three rows */
+export function ProgramOverview({ program }: Props) {
+  const rows = [
+    { title: "What it is", body: program.overview.whatIsIt },
+    { title: "What you work on", body: program.overview.whatYouWorkOn },
+    { title: "How you learn", body: program.overview.learningExperience },
+  ]
+  return (
+    <Section id="overview">
+      <div className="grid gap-10 lg:grid-cols-12 lg:gap-16">
+        <div className="lg:col-span-5">
+          <div className="lg:sticky lg:top-32">
+            <SectionHeading title="About the program" />
           </div>
         </div>
+        <div className="min-w-0 lg:col-span-7">
+          {rows.map((row, i) => (
+            <Reveal key={row.title} y={16} delay={i * 0.05}>
+              <div
+                className={cn(
+                  "grid gap-3 py-8 sm:grid-cols-[11rem_1fr] sm:gap-8 sm:py-10",
+                  i > 0 && "border-t border-white/[0.08]",
+                  i === 0 && "pt-0 sm:pt-2",
+                )}
+              >
+                <h3 className="font-heading text-base font-medium text-headings">{row.title}</h3>
+                <p className="text-base leading-relaxed text-white/75 text-pretty sm:text-xl sm:leading-relaxed">
+                  {row.body}
+                </p>
+              </div>
+            </Reveal>
+          ))}
+        </div>
+      </div>
+    </Section>
+  )
+}
 
-        <div className="flex flex-col sm:flex-row gap-4 justify-center items-center w-full sm:w-auto">
-          <button
-            onClick={handleJoin}
-            className="w-full sm:w-auto px-8 py-4 bg-white text-black font-semibold rounded-full hover:bg-slate-200 transition-all duration-300 shadow-md hover:-translate-y-0.5 text-center text-sm"
+/* 4. Mentor profile: photo, who they are, their words */
+export function ProgramMentor({ program }: Props) {
+  const mentor = program.mentors?.[0]
+  if (!mentor) return null
+  const linkedinHost = mentor.linkedin ? new URL(mentor.linkedin).host.replace(/^www\./, "") : null
+  const expertise = mentor.expertise
+    .split("·")
+    .map((item) => item.trim())
+    .filter(Boolean)
+
+  return (
+    <Section id="mentor" tone="alt" labelledBy="mentor-name">
+      <div className="grid gap-10 md:grid-cols-12 md:items-center lg:gap-16">
+        <Reveal className="md:col-span-5 lg:col-span-4">
+          <div className="relative mx-auto aspect-[4/5] w-full max-w-sm overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0B0B0C] md:mx-0">
+            <Image
+              src={mentor.image}
+              alt={mentor.name}
+              fill
+              sizes="(min-width: 768px) 384px, 90vw"
+              className="object-cover object-[50%_35%]"
+            />
+          </div>
+        </Reveal>
+
+        <div className="min-w-0 md:col-span-7 lg:col-span-8">
+          <p className="eyebrow">Your mentor</p>
+          <h2
+            id="mentor-name"
+            className="mt-5 font-fancy text-5xl font-light leading-[1.05] text-headings sm:text-6xl"
           >
-            Join Program
-          </button>
-          {program.brochureUrl && (
+            {mentor.name}
+          </h2>
+          <p className="mt-5 font-heading text-base text-headings sm:text-lg">{mentor.role}</p>
+          <p className="mt-1 text-[15px] text-muted-foreground sm:text-base">{mentor.company}</p>
+
+          {expertise.length > 0 && (
+            <ul className="mt-6 flex flex-wrap gap-2" aria-label="Experience and expertise">
+              {expertise.map((item) => (
+                <li key={item} className="rounded-full border border-white/10 px-3 py-1 text-sm text-headings/80">
+                  {item}
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {mentor.quote && (
+            <blockquote className="mt-10 max-w-2xl border-l border-white/20 pl-6">
+              <p className="pb-1 font-fancy text-2xl font-light italic leading-snug text-headings/90 sm:text-3xl">
+                &ldquo;{mentor.quote}&rdquo;
+              </p>
+            </blockquote>
+          )}
+
+          {mentor.linkedin && (
             <a
-              href={program.brochureUrl}
-              download
-              className="w-full sm:w-auto px-8 py-4 bg-transparent border border-white/10 text-white font-semibold rounded-full hover:bg-white/5 transition-all duration-300 hover:-translate-y-0.5 text-center text-sm flex items-center justify-center gap-2 group"
+              href={mentor.linkedin}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group mt-8 inline-flex min-h-11 flex-wrap items-center gap-x-3 gap-y-1 font-heading text-sm font-medium text-headings"
             >
-              Download Brochure
-              <FileText className="w-4 h-4 text-slate-400 transition-colors group-hover:text-white" />
+              {mentor.name} on LinkedIn
+              <span className="inline-flex items-center gap-1 text-muted-foreground transition-colors group-hover:text-headings">
+                {linkedinHost}
+                <ArrowUpRight aria-hidden className="size-4" />
+              </span>
+              <span className="sr-only"> (opens in a new tab)</span>
             </a>
           )}
         </div>
-      </motion.div>
-      <JoinProgramModal isOpen={isJoinModalOpen} onClose={handleClose} program={program} />
-    </section>
-  );
-}
-
-export function ProgramMedia({ program }: { program: Program }) {
-  const mentor = program.mentors?.[0];
-
-  return (
-    <section className="py-16 md:py-28 px-6 w-full relative z-10 border-t border-white/5 bg-[#050505]">
-      <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-12 lg:gap-20 items-center">
-        {/* LEFT COLUMN: Program Media */}
-        <div className="w-full flex items-center justify-center">
-          {program.promotionalGraphic ? (
-            <div className="w-full rounded-3xl overflow-hidden border border-white/10 shadow-2xl relative bg-white/5 flex items-center justify-center">
-              <Image
-                src={program.promotionalGraphic}
-                alt={`${program.title} program by LumoraSpace`}
-                width={1200}
-                height={1200}
-                className="w-full h-auto object-contain"
-                priority
-              />
-            </div>
-          ) : program.demoVideo?.url ? (
-            <div className="w-full aspect-video rounded-3xl overflow-hidden border border-white/10 shadow-2xl relative bg-white/5 flex items-center justify-center">
-              <video
-                className="w-full h-full object-cover"
-                controls
-                poster={program.demoVideo.thumbnail}
-                preload="none"
-              >
-                <source src={program.demoVideo.url} type="video/mp4" />
-                Your browser does not support the video tag.
-              </video>
-            </div>
-          ) : null}
-        </div>
-
-        {/* RIGHT COLUMN: Mentor Profile */}
-        {mentor && (
-          <div className="w-full flex flex-col items-start text-left">
-            <span className="text-xs font-semibold text-slate-400 tracking-[0.2em] uppercase mb-8 block">
-              Mentor
-            </span>
-            
-            <h2 className="text-4xl md:text-5xl font-fancy font-light text-white tracking-tight mb-3">
-              {mentor.name}
-            </h2>
-            
-            <p className="text-lg text-slate-300 font-medium mb-3">
-              {mentor.role}
-            </p>
-
-            <p className="text-sm text-slate-400 font-light mb-8">
-              {mentor.expertise}
-            </p>
-            
-            {mentor.quote && (
-              <blockquote className="border-l-2 border-white/10 pl-6 py-2">
-                <p className="text-xl md:text-2xl text-white/90 font-fancy italic leading-relaxed">
-                  “{mentor.quote}”
-                </p>
-              </blockquote>
-            )}
-          </div>
-        )}
       </div>
-    </section>
-  );
+    </Section>
+  )
 }
 
-export function ProgramOverview({ program }: { program: Program }) {
+/* 5. Four-column grid of skills */
+export function ProgramCompetencies({ program }: Props) {
+  if (!program.competencies?.length) return null
   return (
-    <section className="py-16 md:py-24 px-6 w-full relative z-10 border-t border-white/5">
-      <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-12">
-        <div className="md:col-span-1">
-          <span className="text-xs font-semibold text-slate-400 tracking-[0.2em] uppercase mb-3 block">Overview</span>
-          <h2 className="text-3xl font-fancy font-light text-white tracking-tight">The Program</h2>
-        </div>
-        <div className="md:col-span-2 space-y-8">
-          <div>
-            <h3 className="text-sm font-bold uppercase tracking-wider text-white mb-3">What Is It?</h3>
-            <p className="text-slate-400 font-light leading-relaxed">{program.overview.whatIsIt}</p>
-          </div>
-          <div>
-            <h3 className="text-sm font-bold uppercase tracking-wider text-white mb-3">What You&apos;ll Work On</h3>
-            <p className="text-slate-400 font-light leading-relaxed">{program.overview.whatYouWorkOn}</p>
-          </div>
-          <div>
-            <h3 className="text-sm font-bold uppercase tracking-wider text-white mb-3">The Learning Experience</h3>
-            <p className="text-slate-400 font-light leading-relaxed">{program.overview.learningExperience}</p>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
+    <Section id="skills">
+      <SectionHeading title="What you will be able to do" />
+      <ul className="mt-14 grid gap-x-8 gap-y-10 sm:mt-16 sm:grid-cols-2 lg:grid-cols-4">
+        {program.competencies.map((item, i) => (
+          <li key={item.title} className="border-t border-white/[0.12] pt-6">
+            <Reveal y={16} delay={(i % 4) * 0.06}>
+              <h3 className="font-heading text-lg font-medium leading-snug text-headings">{item.title}</h3>
+              <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground">{item.description}</p>
+            </Reveal>
+          </li>
+        ))}
+      </ul>
+    </Section>
+  )
 }
 
-export function ProgramCompetencies({ program }: { program: Program }) {
+/** Hidden while the owner keeps `showCurriculum: false`; the data stays in programs.ts. */
+export function ProgramCurriculum({ program }: Props) {
+  if (program.showCurriculum === false || !program.curriculum?.length) return null
   return (
-    <section className="py-16 md:py-24 px-6 w-full relative z-10 bg-white/[0.02] border-t border-white/5">
-      <div className="max-w-6xl mx-auto">
-        <div className="text-center max-w-3xl mx-auto mb-16">
-          <span className="text-xs font-semibold text-slate-400 tracking-[0.2em] uppercase mb-3 block">Outcomes</span>
-          <h2 className="text-4xl md:text-5xl font-fancy font-light text-white tracking-tight">What You&apos;ll Achieve</h2>
-        </div>
-        
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {program.competencies.map((comp, idx) => {
-            const Icon = IconMap[comp.icon] || FileText;
-            return (
-              <motion.div
-                key={idx}
-                initial={{ opacity: 0, y: 15 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.5, delay: idx * 0.05 }}
-                className="p-6 rounded-[24px] bg-[#111214] border border-white/5 hover:border-white/20 transition-all duration-300 flex flex-col group"
-              >
-                <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center mb-6 group-hover:bg-white/10 group-hover:border-white/20 transition-colors">
-                  <Icon className="w-5 h-5 text-slate-400 group-hover:text-white transition-colors" />
-                </div>
-                <h3 className="text-lg font-heading font-bold text-white mb-3">{comp.title}</h3>
-                <p className="text-sm text-slate-400 font-light leading-relaxed">{comp.description}</p>
-              </motion.div>
-            );
-          })}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-export function ProgramCurriculum({ program }: { program: Program }) {
-  const [openWeek, setOpenWeek] = useState<number | null>(0);
-
-  if (program.showCurriculum === false || !program.curriculum || program.curriculum.length === 0) return null;
-
-  return (
-    <section className="py-16 md:py-24 px-6 w-full relative z-10 border-t border-white/5 bg-[#050505]">
-      <div className="max-w-4xl mx-auto">
-        <div className="text-center max-w-3xl mx-auto mb-16">
-          <span className="text-xs font-semibold text-slate-400 tracking-[0.2em] uppercase mb-3 block">Syllabus</span>
-          <h2 className="text-4xl md:text-5xl font-fancy font-light text-white tracking-tight">Curriculum Roadmap</h2>
-        </div>
-
-        <div className="space-y-4">
-          {program.curriculum.map((item, idx) => {
-            const isOpen = openWeek === idx;
-            return (
-              <div
-                key={idx}
-                className="bg-[#111214] border border-white/5 rounded-2xl overflow-hidden transition-all duration-300 hover:border-white/15"
-              >
-                <button
-                  onClick={() => setOpenWeek(isOpen ? null : idx)}
-                  className="w-full p-5 md:p-6 text-left flex items-center justify-between gap-4 cursor-pointer"
-                >
-                  <div className="flex items-center gap-4 min-w-0">
-                    <span className="text-xs font-mono font-semibold px-2.5 py-1 rounded-md bg-white/5 border border-white/10 text-slate-300 shrink-0">
-                      WEEK {item.week}
-                    </span>
-                    <h3 className="text-base md:text-lg font-heading font-bold text-white truncate">
-                      {item.title}
-                    </h3>
-                  </div>
-                  <div className="flex items-center gap-3 shrink-0">
-                    {item.milestone && (
-                      <span className="hidden sm:inline-block text-[10px] font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
-                        {item.milestone}
-                      </span>
-                    )}
-                    <span className={`text-slate-400 transition-transform duration-300 text-lg ${isOpen ? 'rotate-180' : ''}`}>
-                      ↓
-                    </span>
-                  </div>
-                </button>
-
-                <AnimatePresence>
-                  {isOpen && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: "auto", opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      className="overflow-hidden border-t border-white/5 bg-black/30"
-                    >
-                      <div className="p-5 md:p-6 space-y-4">
-                        <div>
-                          <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Key Topics</h4>
-                          <div className="flex flex-wrap gap-2">
-                            {item.topics.map((topic, i) => (
-                              <span key={i} className="text-xs text-slate-300 bg-white/5 border border-white/10 px-3 py-1 rounded-full">
-                                {topic}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-
-                        {item.practicalWork && (
-                          <div className="pt-2">
-                            <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Practical Execution</h4>
-                            <p className="text-sm text-slate-300 font-light leading-relaxed">{item.practicalWork}</p>
-                          </div>
-                        )}
-                      </div>
-                    </motion.div>
+    <Section id="curriculum" tone="alt">
+      <SectionHeading title="Week by week" />
+      <ol className="mt-12 max-w-4xl">
+        {program.curriculum.map((week, i) => (
+          <li key={week.week} className={cn(i > 0 && "border-t border-white/[0.08]")}>
+            <details className="group">
+              <summary className="flex min-h-14 cursor-pointer list-none items-start gap-4 py-5 [&::-webkit-details-marker]:hidden">
+                <span className="w-20 shrink-0 pt-0.5 font-heading text-sm tabular-nums text-muted-foreground">
+                  Week {week.week}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block font-heading text-base font-medium text-headings sm:text-lg">{week.title}</span>
+                  {week.milestone && (
+                    <span className="mt-1 block text-sm text-muted-foreground">Milestone: {week.milestone}</span>
                   )}
-                </AnimatePresence>
+                </span>
+                <Plus
+                  aria-hidden
+                  className="mt-0.5 size-5 shrink-0 text-muted-foreground transition-transform duration-300 group-open:rotate-45"
+                />
+              </summary>
+              <div className="pb-6 sm:pl-24">
+                <ul className="flex flex-wrap gap-2">
+                  {week.topics.map((topic) => (
+                    <li key={topic} className="rounded-full border border-white/10 px-3 py-1 text-sm text-muted-foreground">
+                      {topic}
+                    </li>
+                  ))}
+                </ul>
+                {week.practicalWork && (
+                  <p className="mt-4 text-[15px] leading-relaxed text-headings/85">
+                    <span className="text-muted-foreground">Practical work: </span>
+                    {week.practicalWork}
+                  </p>
+                )}
               </div>
-            );
-          })}
-        </div>
-      </div>
-    </section>
-  );
+            </details>
+          </li>
+        ))}
+      </ol>
+    </Section>
+  )
 }
 
-export function ProgramProjects({ program }: { program: Program }) {
+/* 6. Timeline: the line fills as the projects grow toward the capstone */
+export function ProgramProjects({ program }: Props) {
+  if (!program.projects?.length) return null
   return (
-    <section className="py-16 md:py-24 px-6 w-full relative z-10 bg-[#111214] border-t border-white/5">
-      <div className="max-w-6xl mx-auto">
-        <div className="text-center max-w-3xl mx-auto mb-16">
-          <span className="text-xs font-semibold text-slate-400 tracking-[0.2em] uppercase mb-3 block">Portfolio</span>
-          <h2 className="text-4xl md:text-5xl font-fancy font-light text-white tracking-tight">What You Will Build</h2>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative">
-          {/* Timeline connecting line for desktop */}
-          <div className="absolute top-1/2 left-0 right-0 h-px bg-white/5 hidden md:block" />
-          
-          {program.projects.map((project, idx) => (
-            <motion.div
-              key={idx}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6, delay: idx * 0.1 }}
-              className="bg-black border border-white/10 rounded-3xl p-8 relative z-10 shadow-xl"
-            >
-              <h3 className="text-2xl font-heading font-bold text-white mb-2">{project.title}</h3>
-              <p className="text-sm text-slate-500 font-medium mb-6 uppercase tracking-wider">{project.stage}</p>
-              <p className="text-slate-400 font-light leading-relaxed mb-8">{project.description}</p>
-              
-              <div className="flex flex-wrap gap-x-4 gap-y-2">
-                {project.technologies.map((tech, i) => (
-                  <span key={i} className="text-xs text-slate-300 flex items-center gap-2">
-                    <span className="w-1 h-1 rounded-full bg-slate-500" />
+    <Section id="projects" tone="alt">
+      <SectionHeading
+        title="What you will build"
+        lead="Projects grow in scope from the first weeks to the capstone."
+      />
+      <ScrollRail className="mt-14 sm:mt-16 lg:ml-[33.333%]">
+        <ol className="space-y-14 sm:space-y-16">
+          {program.projects.map((project) => (
+            <li key={project.title} className="pl-8 sm:pl-12">
+              <p className="font-heading text-sm text-muted-foreground">{project.stage}</p>
+              <h3 className="mt-2 font-fancy text-3xl font-light leading-tight text-headings text-balance sm:text-4xl">
+                {project.title}
+              </h3>
+              <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-muted-foreground sm:text-base">
+                {project.description}
+              </p>
+              <ul className="mt-5 flex flex-wrap gap-2" aria-label={`Technologies in ${project.title}`}>
+                {project.technologies.map((tech) => (
+                  <li key={tech} className="rounded-full border border-white/10 px-3 py-1 text-sm text-headings/80">
                     {tech}
-                  </span>
+                  </li>
                 ))}
-              </div>
-            </motion.div>
+              </ul>
+            </li>
           ))}
-        </div>
-      </div>
-    </section>
-  );
+        </ol>
+      </ScrollRail>
+    </Section>
+  )
 }
 
-export function ProgramGenAI({ program }: { program: Program }) {
-  if (!program.genAI) return null;
-  
+/* 7. Centred statement with the tools set as type */
+export function ProgramGenAI({ program }: Props) {
+  if (!program.genAI) return null
   return (
-    <section className="py-16 md:py-24 px-6 w-full relative z-10 border-t border-white/5 overflow-hidden">
-      <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-indigo-500/5 blur-[120px] rounded-full pointer-events-none" />
-      
-      <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-        <div>
-          <span className="text-xs font-semibold text-slate-400 tracking-[0.2em] uppercase mb-3 block">Modern Engineering</span>
-          <h2 className="text-4xl md:text-5xl font-fancy font-light text-white tracking-tight mb-6">
-            Build with AI. <br/> Understand what you ship.
+    <Section id="ai" labelledBy="ai-title">
+      <div className="mx-auto max-w-4xl text-center">
+        <SectionHeading
+          align="center"
+          title={<span id="ai-title">AI in your workflow</span>}
+          lead={program.genAI.description}
+        />
+      </div>
+      <h3 className="sr-only">Tools covered</h3>
+      <ul className="mx-auto mt-12 flex max-w-6xl flex-wrap items-baseline justify-center gap-x-8 gap-y-3 border-t border-white/[0.08] pt-10 sm:gap-x-12">
+        {program.genAI.tools.map((tool) => (
+          <li key={tool} className="font-fancy text-3xl font-light text-headings sm:text-4xl lg:text-5xl">
+            {tool}
+          </li>
+        ))}
+      </ul>
+    </Section>
+  )
+}
+
+const GROUP_LABEL: Record<string, string> = {
+  Profile: "Your profile",
+  Interviews: "Interview preparation",
+}
+
+/* 8. Career preparation, grouped into two columns */
+export function ProgramCareerPrep({ program }: Props) {
+  if (!program.careerPrep?.length) return null
+  const groups = program.careerPrep.reduce<{ key: string; items: Program["careerPrep"] }[]>((acc, item) => {
+    const key = item.group ?? "More"
+    const group = acc.find((g) => g.key === key)
+    if (group) group.items.push(item)
+    else acc.push({ key, items: [item] })
+    return acc
+  }, [])
+
+  return (
+    <Section id="career" tone="alt">
+      <SectionHeading
+        title="Preparation for the job search"
+        lead="Built into the program alongside the technical work."
+      />
+      <div className={cn("mt-14 grid gap-12 sm:mt-16", groups.length > 1 && "md:grid-cols-2 md:gap-16")}>
+        {groups.map((group) => (
+          <div key={group.key} className="min-w-0">
+            <h3 className="border-b border-white/[0.16] pb-4 font-heading text-lg font-medium text-headings">
+              {GROUP_LABEL[group.key] ?? "More"}
+            </h3>
+            <dl className="mt-6 space-y-6">
+              {group.items.map((item) => (
+                <div key={item.title}>
+                  <dt className="font-heading text-base font-medium text-headings">{item.title}</dt>
+                  <dd className="mt-1 text-[15px] leading-relaxed text-muted-foreground">{item.description}</dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+        ))}
+      </div>
+    </Section>
+  )
+}
+
+/* 9. Single-column questions */
+export function ProgramFAQ({ program }: Props) {
+  if (!program.faqs?.length) return null
+  return (
+    <Section id="faq">
+      <div className="mx-auto max-w-3xl">
+        <SectionHeading title="Common questions" />
+        <div className="mt-10 border-t border-white/[0.12]">
+          {program.faqs.map((faq) => (
+            <details key={faq.question} className="group border-b border-white/[0.08]">
+              <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-6 py-5 [&::-webkit-details-marker]:hidden">
+                <h3 className="font-heading text-base font-medium leading-snug text-headings sm:text-lg">
+                  {faq.question}
+                </h3>
+                <Plus
+                  aria-hidden
+                  className="size-5 shrink-0 text-muted-foreground transition-transform duration-300 group-open:rotate-45"
+                />
+              </summary>
+              <p className="max-w-2xl pb-6 pr-10 text-[15px] leading-relaxed text-muted-foreground sm:text-base">
+                <Money>{faq.answer}</Money>
+              </p>
+            </details>
+          ))}
+        </div>
+        <p className="mt-8 text-[15px] leading-relaxed text-muted-foreground">
+          Something else on your mind? Write to{" "}
+          <a
+            href={`mailto:${CONTACT.support}`}
+            className="wrap-anywhere text-headings underline decoration-white/30 underline-offset-4 transition-colors hover:decoration-white"
+          >
+            {CONTACT.support}
+          </a>
+          .
+        </p>
+      </div>
+    </Section>
+  )
+}
+
+/* 10. Close: how applying works, next to the fee and the two payment plans */
+export function ProgramFinalCTA({ program }: Props) {
+  return (
+    <Section id="apply" tone="alt">
+      <div className="grid gap-14 lg:grid-cols-12 lg:gap-16">
+        <div className="lg:col-span-6">
+          <h2 className="font-fancy text-5xl font-light leading-[1.05] tracking-tight text-headings text-balance sm:text-6xl">
+            Start with a short application.
           </h2>
-          <p className="text-lg text-slate-400 font-light leading-relaxed mb-8">
-            {program.genAI.description}
+          <p className="mt-6 max-w-xl text-[15px] leading-relaxed text-muted-foreground sm:text-lg">
+            No payment is needed to apply. A program coordinator contacts you, confirms your payment plan and completes
+            your enrollment.
           </p>
-          <div className="p-6 bg-white/5 border border-white/10 rounded-2xl">
-            <h4 className="text-sm font-bold text-white mb-2">Integration</h4>
-            <p className="text-sm text-slate-400 font-light">{program.genAI.integration}</p>
+          <div className="mt-10 flex flex-col gap-3 sm:flex-row">
+            <ApplyButton className="btn-primary min-h-12">Apply now</ApplyButton>
+            <BrochureLink program={program} />
           </div>
         </div>
-        
-        <div className="bg-black/50 border border-white/10 rounded-3xl p-8 backdrop-blur-sm">
-          <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-6 text-center">Tools & Platforms Covered</h4>
-          <div className="flex flex-wrap justify-center gap-3">
-            {program.genAI.tools.map((tool, i) => (
-              <div key={i} className="px-4 py-2 bg-white/5 border border-white/10 rounded-full text-sm text-slate-300 font-medium">
-                {tool}
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
 
-export function ProgramCareerPrep({ program }: { program: Program }) {
-  if (!program.careerPrep) return null;
-  
-  return (
-    <section className="py-16 md:py-24 px-6 w-full relative z-10 bg-white/[0.02] border-t border-white/5">
-      <div className="max-w-6xl mx-auto">
-        <div className="text-center max-w-3xl mx-auto mb-16">
-          <span className="text-xs font-semibold text-slate-400 tracking-[0.2em] uppercase mb-3 block">Outcomes</span>
-          <h2 className="text-4xl md:text-5xl font-fancy font-light text-white tracking-tight">Career Preparation</h2>
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {program.careerPrep.map((item, idx) => (
-            <div key={idx} className="p-6 bg-transparent border-t border-white/10">
-              <h3 className="text-lg font-bold text-white mb-2">{item.title}</h3>
-              <p className="text-sm text-slate-400 font-light leading-relaxed">{item.description}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-export function ProgramFAQ({ program }: { program: Program }) {
-  const [openIndex, setOpenIndex] = useState<number | null>(null);
-
-  if (!program.faqs || program.faqs.length === 0) return null;
-
-  return (
-    <section className="py-16 md:py-24 px-6 w-full relative z-10 border-t border-white/5">
-      <div className="max-w-3xl mx-auto">
-        <div className="text-center mb-16">
-          <h2 className="text-3xl font-fancy font-light text-white tracking-tight">Frequently Asked Questions</h2>
-        </div>
-        
-        <div className="space-y-4">
-          {program.faqs.map((faq, idx) => {
-            const isOpen = openIndex === idx;
-            return (
-              <div key={idx} className="border-b border-white/10 pb-4">
-                <button
-                  onClick={() => setOpenIndex(isOpen ? null : idx)}
-                  className="w-full flex items-center justify-between text-left py-4"
-                >
-                  <span className="text-base font-medium text-white pr-8">{faq.question}</span>
-                  <div className={`shrink-0 text-slate-400 transition-transform duration-300 ${isOpen ? 'rotate-45' : ''}`}>
-                    +
-                  </div>
-                </button>
-                <AnimatePresence>
-                  {isOpen && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: "auto", opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      className="overflow-hidden"
-                    >
-                      <p className="text-sm text-slate-400 font-light leading-relaxed pb-4 pt-2">
-                        {faq.answer}
-                      </p>
-                    </motion.div>
+        <div className="lg:col-span-5 lg:col-start-8">
+          <p className="text-sm text-muted-foreground">Program fee</p>
+          <p className="mt-3 font-fancy text-6xl font-light leading-none text-headings sm:text-7xl">
+            <Money signClassName="text-[0.82em]">{program.fee}</Money>
+          </p>
+          <dl className="mt-10 border-t border-white/[0.12]">
+            {program.paymentPlans.map((plan, i) => {
+              const split = plan.type === "SPLIT PAYMENT"
+              return (
+                <div
+                  key={plan.type}
+                  className={cn(
+                    "grid gap-1 py-5 sm:grid-cols-[12rem_1fr] sm:gap-6",
+                    i > 0 && "border-t border-white/[0.08]",
                   )}
-                </AnimatePresence>
-              </div>
-            );
-          })}
+                >
+                  <dt className="font-heading text-base font-medium text-headings">
+                    {split ? "Pay in instalments" : "Pay in full"}
+                  </dt>
+                  <dd className="text-[15px] leading-relaxed text-muted-foreground sm:text-base">
+                    {split && plan.schedule?.length ? (
+                      plan.schedule.map((line) => (
+                        <span key={line} className="block">
+                          <Money>{line}</Money>
+                        </span>
+                      ))
+                    ) : (
+                      <>
+                        <Money>{plan.amount}</Money>, {plan.description.toLowerCase()}
+                      </>
+                    )}
+                  </dd>
+                </div>
+              )
+            })}
+          </dl>
         </div>
       </div>
-    </section>
-  );
-}
-
-export function ProgramFinalCTA({ program }: { program: Program }) {
-  const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
-  const handleJoin = () => setIsJoinModalOpen(true);
-  const handleClose = () => setIsJoinModalOpen(false);
-
-  return (
-    <section className="py-24 md:py-32 px-6 w-full relative z-10 bg-[#050505] border-t border-white/5">
-      <div className="max-w-6xl mx-auto flex flex-col md:flex-row gap-16 lg:gap-24 items-center">
-        
-        {/* Left Side: Call to Action */}
-        <div className="w-full md:w-1/2 flex flex-col items-start text-left">
-          <h2 className="text-5xl md:text-7xl font-fancy font-light text-white tracking-tight mb-6 leading-[1.1]">
-            Ready to build?
-          </h2>
-          <p className="text-xl md:text-2xl text-slate-400 font-light leading-relaxed">
-            {program.duration}. Real projects. Modern engineering.
-          </p>
-        </div>
-
-        {/* Right Side: Fee & Actions */}
-        <div className="w-full md:w-1/2 flex flex-col items-start text-left md:border-l md:border-white/10 md:pl-16 lg:pl-24">
-          <span className="text-xs font-semibold text-slate-400 tracking-[0.2em] uppercase mb-4 block">
-            Program Fee
-          </span>
-          <p className="text-5xl md:text-6xl text-white font-fancy tracking-tight mb-4">
-            {program.fee}
-          </p>
-          <p className="text-base text-slate-400 font-light mb-12">
-            One-time program fee.
-          </p>
-
-          <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
-            <button
-              onClick={handleJoin}
-              className="w-full sm:w-auto px-10 py-4 bg-white text-black font-semibold rounded-full hover:bg-slate-200 transition-all duration-300 shadow-xl text-base"
-            >
-              Join Program
-            </button>
-            {program.brochureUrl && (
-              <a
-                href={program.brochureUrl}
-                download
-                className="w-full sm:w-auto px-8 py-4 bg-transparent border border-white/10 text-white font-semibold rounded-full hover:bg-white/5 transition-all duration-300 text-sm flex justify-center items-center"
-              >
-                Download Brochure
-              </a>
-            )}
-          </div>
-        </div>
-
-      </div>
-      <JoinProgramModal isOpen={isJoinModalOpen} onClose={handleClose} program={program} />
-    </section>
-  );
+    </Section>
+  )
 }
