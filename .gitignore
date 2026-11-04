@@ -4,7 +4,4 @@ node_modules/
 .env*
 !.env.example
 tsconfig.tsbuildinfo
-# Cloudflare (OpenNext build output, local wrangler state, local secrets)
-.open-next/
 .wrangler/
-.dev.vars*
