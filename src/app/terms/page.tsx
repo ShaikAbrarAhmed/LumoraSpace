@@ -103,7 +103,7 @@ export default function TermsPage() {
   return (
     <>
       <Navbar />
-      <main id="main" className="bg-background">
+      <main id="main" className="bg-ls-ink">
         <LegalDocument title="Terms of service" updated="2026-08-14" sections={sections} />
       </main>
       <Footer />

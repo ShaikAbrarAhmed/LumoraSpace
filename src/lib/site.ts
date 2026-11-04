@@ -41,16 +41,16 @@ export const CAREERS = {
   home: "https://careers.lumoraspace.in",
 }
 
-export type NavItem = { label: string; href: string }
+export const COMPANY = {
+  legalName: "Lumora Space LLP",
+  llpin: "ADC-1007",
+  office: "Bodhan, Nizamabad, Telangana",
+}
 
-export const NAV_ITEMS: NavItem[] = [
-  { label: "Home", href: "/" },
-  { label: "Programs", href: "/cohorts" },
-  { label: "Hackathons", href: "/hackathons" },
-  { label: "Opportunities", href: "/opportunities" },
-  { label: "Services", href: "/services" },
-  { label: "Community", href: "/community" },
-  { label: "Mentors", href: "/mentors" },
-]
+/** Next cohort. One place to change the date shown in the hero, menus, footer and program pages. */
+export const REGISTRATION = {
+  opens: "4 December 2026",
+  opensShort: "4 Dec 2026",
+}
 
 export const isExternal = (href: string) => /^(https?:|mailto:)/.test(href)

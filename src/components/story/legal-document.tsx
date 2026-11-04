@@ -1,6 +1,5 @@
 import type { ReactNode } from "react"
-import { HEADING_SIZE } from "@/components/ui/section-heading"
-import { cn } from "@/lib/utils"
+import { PageHero } from "@/components/site/ui"
 
 export type LegalSection = {
   id: string
@@ -17,10 +16,10 @@ type LegalDocumentProps = {
 
 /** Class for links inside legal copy. */
 export const legalLinkClass =
-  "text-headings underline decoration-white/30 underline-offset-4 transition-colors hover:decoration-white"
+  "text-ls-fg underline decoration-white/40 underline-offset-4 transition-colors hover:text-white hover:decoration-white"
 
 /** Class for bulleted lists inside legal copy. */
-export const legalListClass = "list-disc space-y-2 pl-5 marker:text-white/40"
+export const legalListClass = "list-disc space-y-2 pl-5 marker:text-ls-amber"
 
 function formatDate(iso: string) {
   return new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" }).format(
@@ -29,35 +28,35 @@ function formatDate(iso: string) {
 }
 
 /**
- * Long-form legal page body: title, revision date, sticky contents on desktop, numbered sections.
- * The h1 uses the smaller `section` display size on purpose: a legal title is a label for the
- * text below it, not a headline.
+ * Long-form legal page in the redesign: the standard inner-page hero, then numbered sections
+ * beside a sticky contents list (the V6 left-column/right-column split).
  */
 export function LegalDocument({ title, updated, sections }: LegalDocumentProps) {
   return (
-    <div className="container-page pb-24 md:pb-32">
-      <header className="page-header">
-        <div className="max-w-3xl border-b border-white/[0.08] pb-10">
-          <p className="eyebrow mb-5">Legal</p>
-          <h1 className={cn(HEADING_SIZE.section, "leading-[1.05] tracking-tight text-headings")}>{title}</h1>
-          <p className="mt-6 text-sm text-muted-foreground">
-            Last updated <time dateTime={updated}>{formatDate(updated)}</time>
-          </p>
-        </div>
-      </header>
+    <>
+      <PageHero
+        crumbs={[{ label: "Home", href: "/" }, { label: title }]}
+        eyebrow="Legal"
+        title={title}
+        lead={
+          <>
+            Last updated <time dateTime={updated}>{formatDate(updated)}</time>.
+          </>
+        }
+      />
 
-      <div className="grid gap-12 lg:grid-cols-12">
-        <nav aria-label="On this page" className="hidden lg:col-span-3 lg:block">
-          <div className="sticky top-32">
-            <p className="mb-3 font-heading text-sm text-headings">On this page</p>
-            <ol className="space-y-0.5">
+      <div className="ls-container ls-section-y flex flex-wrap gap-x-12 gap-y-10">
+        <nav aria-label="On this page" className="hidden flex-[1_1_260px] lg:block">
+          <div className="sticky top-28">
+            <p className="m-0 mb-3 text-sm font-semibold uppercase tracking-[0.1em] text-ls-amber">On this page</p>
+            <ol className="m-0 list-none border-t border-white/10 p-0">
               {sections.map((section, i) => (
-                <li key={section.id}>
+                <li key={section.id} className="border-b border-white/10">
                   <a
                     href={`#${section.id}`}
-                    className="flex gap-3 py-1.5 text-sm text-muted-foreground transition-colors hover:text-headings"
+                    className="flex min-h-11 items-center gap-3 py-2 text-[15px] text-ls-body no-underline transition-colors hover:text-ls-fg"
                   >
-                    <span className="w-5 shrink-0 font-heading tabular-nums">{i + 1}.</span>
+                    <span className="w-5 shrink-0 tabular-nums text-ls-faint">{i + 1}.</span>
                     {section.title}
                   </a>
                 </li>
@@ -66,23 +65,28 @@ export function LegalDocument({ title, updated, sections }: LegalDocumentProps) 
           </div>
         </nav>
 
-        <article className="max-w-[68ch] space-y-12 md:space-y-14 lg:col-span-8 lg:col-start-5">
+        <article className="flex min-w-0 max-w-[68ch] flex-[2.4_1_600px] flex-col">
           {sections.map((section, i) => (
-            <section key={section.id} id={section.id} aria-labelledby={`${section.id}-title`} className="scroll-mt-28">
+            <section
+              key={section.id}
+              id={section.id}
+              aria-labelledby={`${section.id}-title`}
+              className="scroll-mt-24 border-t border-white/10 py-10 first:border-t-0 first:pt-0"
+            >
               <h2
                 id={`${section.id}-title`}
-                className="flex items-baseline gap-3 text-2xl leading-tight text-headings sm:text-3xl"
+                className="m-0 flex items-baseline gap-3 text-[clamp(24px,2.4vw,30px)] font-semibold leading-tight tracking-[-0.02em] text-ls-fg"
               >
-                <span className="font-heading text-sm tabular-nums text-muted-foreground">{i + 1}.</span>
+                <span className="text-sm tabular-nums text-ls-amber">{i + 1}.</span>
                 {section.title}
               </h2>
-              <div className="mt-4 space-y-4 text-[15px] leading-7 text-muted-foreground sm:text-base [&_strong]:font-medium [&_strong]:text-headings">
+              <div className="mt-4 space-y-4 text-base leading-7 [&_strong]:font-medium [&_strong]:text-ls-fg">
                 {section.content}
               </div>
             </section>
           ))}
         </article>
       </div>
-    </div>
+    </>
   )
 }

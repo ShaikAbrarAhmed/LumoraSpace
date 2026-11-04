@@ -37,7 +37,7 @@ export function GoogleSignInButton({ getCallbackUrl, disabled }: { getCallbackUr
         setRedirecting(true)
         signIn("google", { callbackUrl: getCallbackUrl() }).catch(() => setRedirecting(false))
       }}
-      className="flex h-12 w-full items-center justify-center gap-3 rounded-full border border-white/15 font-heading text-sm font-semibold text-headings transition-colors duration-200 hover:border-white/35 hover:bg-white/[0.04] disabled:cursor-not-allowed disabled:opacity-60"
+      className="flex min-h-[52px] w-full cursor-pointer items-center justify-center gap-3 rounded-[6px] border border-white/[0.28] bg-transparent font-[inherit] text-[17px] font-medium text-ls-fg transition-colors duration-200 hover:border-white/50 hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
     >
       {redirecting ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <GoogleMark className="h-4 w-4 shrink-0" />}
       Continue with Google
@@ -49,9 +49,9 @@ export function GoogleSignInButton({ getCallbackUrl, disabled }: { getCallbackUr
 export function AuthDivider() {
   return (
     <div className="flex items-center gap-4" aria-hidden>
-      <span className="h-px flex-1 bg-white/[0.08]" />
-      <span className="font-heading text-xs uppercase tracking-[0.2em] text-muted-foreground">or</span>
-      <span className="h-px flex-1 bg-white/[0.08]" />
+      <span className="h-px flex-1 bg-white/10" />
+      <span className="text-sm text-ls-faint">or</span>
+      <span className="h-px flex-1 bg-white/10" />
     </div>
   )
 }

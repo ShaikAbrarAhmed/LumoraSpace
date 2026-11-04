@@ -88,9 +88,9 @@ export const programs: Record<string, Program> = {
     description: "Build and deploy full-stack web apps with MongoDB, Express, React, Node.js and Next.js, and ship AI features into them.",
     status: "Enrollment open",
     level: "Beginner to intermediate",
-    duration: "12 weeks",
+    duration: "15 weeks",
     schedule: "Mon to Fri, 1.5 hours a day",
-    weeks: 12,
+    weeks: 15,
     daysPerWeek: 5,
     hoursPerDay: 1.5,
     mode: "Live online, hands-on building",
@@ -320,7 +320,7 @@ export const programs: Record<string, Program> = {
       },
       {
         question: "How long is the program?",
-        answer: "The program spans 12 weeks, requiring approximately 1.5 hours of dedicated learning and building time per day."
+        answer: "The program spans 15 weeks, requiring approximately 1.5 hours of dedicated learning and building time per day."
       },
       {
         question: "What is the class schedule?",
@@ -350,13 +350,13 @@ export const programs: Record<string, Program> = {
   },
   "data-analyst": {
     slug: "data-analyst",
-    title: "Data Analyst",
+    title: "Data Analytics",
     description: "Excel, SQL, Python and Power BI: learn to turn raw data into business decisions, with AI-assisted workflows.",
     status: "Enrollment open",
     level: "No coding experience needed",
-    duration: "12 weeks",
+    duration: "15 weeks",
     schedule: "Mon to Fri, 1.5 hours a day",
-    weeks: 12,
+    weeks: 15,
     daysPerWeek: 5,
     hoursPerDay: 1.5,
     mode: "Live online, hands-on building",
@@ -586,7 +586,7 @@ export const programs: Record<string, Program> = {
     ],
     faqs: [
       {
-        question: "Who is this Data Analyst program for?",
+        question: "Who is this Data Analytics program for?",
         answer: "This program is designed for beginners, graduates, and working professionals who want to develop practical data analysis skills in SQL, Python, Excel, and Power BI."
       },
       {
@@ -595,7 +595,7 @@ export const programs: Record<string, Program> = {
       },
       {
         question: "How long is the program?",
-        answer: "The program spans 12 weeks, requiring approximately 1.5 hours per day of live learning and practical project building."
+        answer: "The program spans 15 weeks, requiring approximately 1.5 hours per day of live learning and practical project building."
       },
       {
         question: "What tools will I learn?",

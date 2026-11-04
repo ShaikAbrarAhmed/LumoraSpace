@@ -1,37 +1,26 @@
 "use client"
 
-import Link from "next/link"
 import Image from "next/image"
+import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useCallback, useEffect, useId, useRef, useState } from "react"
-import { useMotionValueEvent, useScroll } from "framer-motion"
-import { ArrowUpRight } from "lucide-react"
 import { signOut, useSession } from "next-auth/react"
-import { ARENA, CAREERS, CONTACT, EDU, NAV_ITEMS } from "@/lib/site"
+import { MENUS, type Menu } from "@/data/site-nav"
+import { buttonClass, SmartLink } from "@/components/site/ui"
+import { CONTACT } from "@/lib/site"
+import { cn } from "@/lib/utils"
 
-const ECOSYSTEM = [
-  { label: EDU.name, host: EDU.host, href: EDU.home },
-  { label: ARENA.name, host: ARENA.host, href: ARENA.home },
-  { label: CAREERS.name, host: CAREERS.host, href: CAREERS.home },
-]
-
-// On desktop the logo is the way home, which keeps the inline nav on one line from 1280px up.
-const DESKTOP_ITEMS = NAV_ITEMS.filter((item) => item.href !== "/")
-
-// Below this width the menu button takes over. Keep in sync with the min-[80rem] classes.
-const DESKTOP_QUERY = "(min-width: 80rem)"
+// Below this width the menus collapse into one full-screen sheet. Keep in sync with the lg: classes.
+const DESKTOP_QUERY = "(min-width: 64rem)"
 
 const FOCUSABLE = 'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])'
 
-// Non-content siblings left alone when the open menu makes the rest of the page inert.
+// Non-content siblings left alone when the open sheet makes the rest of the page inert.
 // The route announcer must stay live so the page change after a menu link is still announced.
 const SKIP_INERT = new Set(["SCRIPT", "STYLE", "NOSCRIPT", "TEMPLATE", "LINK", "META", "NEXT-ROUTE-ANNOUNCER"])
 
-function isActive(href: string, pathname: string) {
-  if (href === "/") return pathname === "/"
-  if (href === "/cohorts" && pathname.startsWith("/programs")) return true
-  return pathname === href || pathname.startsWith(`${href}/`)
-}
+const matches = (pathname: string, route: string) => pathname === route || pathname.startsWith(`${route}/`)
+const isCurrent = (menu: Menu, pathname: string) => menu.sections.some((route) => matches(pathname, route))
 
 /**
  * Rendered first in <body> by the root layout. Pages own their <main>, so the link
@@ -48,10 +37,90 @@ export function SkipLink() {
         if (!target.hasAttribute("tabindex")) target.setAttribute("tabindex", "-1")
         target.focus()
       }}
-      className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-3 focus:z-[60] focus:inline-flex focus:h-11 focus:items-center focus:rounded-full focus:bg-primary focus:px-5 focus:font-heading focus:text-sm focus:font-semibold focus:text-primary-foreground"
+      className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-3 focus:z-[60] focus:inline-flex focus:h-11 focus:items-center focus:rounded-[6px] focus:bg-ls-amber focus:px-5 focus:text-sm focus:font-semibold focus:text-ls-ink"
     >
       Skip to content
     </a>
+  )
+}
+
+function Chevron({ open, className }: { open: boolean; className?: string }) {
+  return (
+    <svg
+      aria-hidden
+      width="12"
+      height="12"
+      viewBox="0 0 12 12"
+      className={cn("flex-none transition-transform duration-150", open && "rotate-180", className)}
+    >
+      <path d="M3 4.5 6 7.5 9 4.5" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+function Brand({ onClick }: { onClick?: () => void }) {
+  return (
+    <Link
+      href="/"
+      onClick={onClick}
+      aria-label="LumoraSpace home"
+      className="inline-flex min-h-11 shrink-0 items-center gap-3 no-underline"
+    >
+      {/* White cut-outs of the brand mark and wordmark. */}
+      <Image src="/logo-mark.png" alt="" width={156} height={123} loading="eager" className="h-[26px] w-auto lg:h-[30px]" />
+      <Image src="/logo-wordmark.png" alt="" width={998} height={87} loading="eager" className="h-[11px] w-auto lg:h-[13px]" />
+    </Link>
+  )
+}
+
+/** Amber bar under the menu item for the section the visitor is in. */
+function CurrentMark() {
+  return <span aria-hidden className="absolute inset-x-3 bottom-1.5 h-0.5 bg-ls-amber" />
+}
+
+function MenuLinkItem({ link, onNavigate }: { link: Menu["columns"][number]["links"][number]; onNavigate: () => void }) {
+  return (
+    <SmartLink
+      href={link.href}
+      onClick={onNavigate}
+      className="group flex flex-col gap-0.5 border-t border-white/[0.08] py-2.5 no-underline"
+    >
+      <span className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
+        <span className="text-base font-medium text-ls-fg group-hover:text-white">{link.title}</span>
+        {link.tag && <span className="text-[13px] text-ls-faint">{link.tag}</span>}
+      </span>
+      <span className="text-sm text-ls-body">{link.description}</span>
+    </SmartLink>
+  )
+}
+
+function MenuPanel({ menu, id, onNavigate }: { menu: Menu; id: string; onNavigate: () => void }) {
+  return (
+    <div
+      id={id}
+      className="absolute inset-x-0 top-full border-b border-white/10 bg-ls-ink-2 shadow-[0_24px_48px_rgba(0,0,0,0.5)]"
+    >
+      <div
+        className="ls-container grid gap-x-10 gap-y-7 pb-9 pt-8"
+        style={{ gridTemplateColumns: `repeat(${menu.columns.length}, minmax(0, 1fr)) 300px` }}
+      >
+        {menu.columns.map((column) => (
+          <div key={column.heading} className="flex flex-col gap-1.5">
+            <span className="pb-1.5 text-[13px] font-semibold uppercase tracking-[0.08em] text-ls-amber">{column.heading}</span>
+            {column.links.map((link) => (
+              <MenuLinkItem key={link.title} link={link} onNavigate={onNavigate} />
+            ))}
+          </div>
+        ))}
+        <div className="flex flex-col gap-2.5 border-l border-white/10 pl-8">
+          <span className="text-[13px] font-semibold uppercase tracking-[0.08em] text-ls-faint">{menu.promo.heading}</span>
+          <p className="m-0 text-base text-ls-soft">{menu.promo.body}</p>
+          <SmartLink href={menu.promo.href} onClick={onNavigate} className={buttonClass("amber", "sm", "self-start text-sm")}>
+            {menu.promo.cta}
+          </SmartLink>
+        </div>
+      </div>
+    </div>
   )
 }
 
@@ -60,32 +129,63 @@ export function Navbar() {
   const { data: session, status } = useSession()
   const user = session?.user
 
-  // Remember the route the menu was opened on, so any navigation closes it.
-  const [openOn, setOpenOn] = useState<string | null>(null)
-  const open = openOn !== null && openOn === pathname
+  // Desktop mega menu: which panel is open, remembered with the route it was opened on so navigation closes it.
+  const [menuState, setMenuState] = useState<{ id: Menu["id"]; on: string } | null>(null)
+  const openMenu = menuState && menuState.on === pathname ? menuState.id : null
 
-  // The header only needs to know whether the page has left the top, not every scroll value.
-  const { scrollY } = useScroll()
+  // Mobile sheet, same idea; plus which accordion group is expanded inside it.
+  const [sheetOn, setSheetOn] = useState<string | null>(null)
+  const sheetOpen = sheetOn !== null && sheetOn === pathname
+  const [expanded, setExpanded] = useState<Menu["id"] | null>(null)
+
   const [scrolled, setScrolled] = useState(false)
-  useMotionValueEvent(scrollY, "change", (latest) => setScrolled(latest > 12))
 
-  const menuId = useId()
+  const uid = useId()
+  const navRef = useRef<HTMLDivElement>(null)
   const toggleRef = useRef<HTMLButtonElement>(null)
   const sheetRef = useRef<HTMLDivElement>(null)
 
-  const close = useCallback(() => setOpenOn(null), [])
+  const closeMenu = useCallback(() => setMenuState(null), [])
+  const closeSheet = useCallback(() => setSheetOn(null), [])
 
-  // Escape closes, Tab stays inside the toggle + sheet, page scroll is locked,
+  // Solid with blur once the page leaves the top.
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 8)
+    onScroll()
+    window.addEventListener("scroll", onScroll, { passive: true })
+    return () => window.removeEventListener("scroll", onScroll)
+  }, [])
+
+  // Desktop panel: Esc closes and returns focus to its trigger; a click outside the header closes.
+  useEffect(() => {
+    if (!openMenu) return
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return
+      closeMenu()
+      navRef.current?.querySelector<HTMLElement>(`[data-menu="${openMenu}"]`)?.focus()
+    }
+    const onPointerDown = (event: PointerEvent) => {
+      if (!navRef.current?.contains(event.target as Node)) closeMenu()
+    }
+    document.addEventListener("keydown", onKeyDown)
+    document.addEventListener("pointerdown", onPointerDown)
+    return () => {
+      document.removeEventListener("keydown", onKeyDown)
+      document.removeEventListener("pointerdown", onPointerDown)
+    }
+  }, [openMenu, closeMenu])
+
+  // Mobile sheet: Escape closes, Tab stays inside the toggle + sheet, page scroll is locked,
   // and everything behind the sheet leaves the accessibility tree.
   useEffect(() => {
-    if (!open) return
+    if (!sheetOpen) return
 
     const root = document.documentElement
     const previousOverflow = root.style.overflow
     root.style.overflow = "hidden"
 
     // The Close toggle lives in the header, so the sheet cannot be aria-modal (VoiceOver would
-    // hide the toggle). Instead make every other branch of the page inert while the menu is open.
+    // hide the toggle). Instead make every other branch of the page inert while the sheet is open.
     const header = toggleRef.current?.closest("header") ?? null
     const madeInert: HTMLElement[] = []
     for (let node: HTMLElement | null = sheetRef.current; node && node !== document.body; node = node.parentElement) {
@@ -99,13 +199,12 @@ export function Navbar() {
       }
     }
 
-    const firstLink = sheetRef.current?.querySelector<HTMLElement>(FOCUSABLE)
-    firstLink?.focus({ preventScroll: true })
+    sheetRef.current?.querySelector<HTMLElement>(FOCUSABLE)?.focus({ preventScroll: true })
 
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         event.preventDefault()
-        close()
+        closeSheet()
         toggleRef.current?.focus()
         return
       }
@@ -124,7 +223,7 @@ export function Navbar() {
     }
 
     const desktop = window.matchMedia(DESKTOP_QUERY)
-    const onDesktop = (event: MediaQueryListEvent) => event.matches && close()
+    const onDesktop = (event: MediaQueryListEvent) => event.matches && closeSheet()
 
     document.addEventListener("keydown", onKeyDown)
     desktop.addEventListener("change", onDesktop)
@@ -134,248 +233,220 @@ export function Navbar() {
       document.removeEventListener("keydown", onKeyDown)
       desktop.removeEventListener("change", onDesktop)
     }
-  }, [open, close])
+  }, [sheetOpen, closeSheet])
 
-  const solid = scrolled || open
+  const solid = scrolled || openMenu !== null || sheetOpen
+  const aboutCurrent = matches(pathname, "/our-story")
+  const desktopItem =
+    "relative inline-flex min-h-11 items-center gap-1.5 rounded-[6px] px-3 text-[15px] no-underline transition-colors"
 
   return (
     <>
-      <header className="fixed inset-x-0 top-0 z-50">
-        {/* Backdrop fades in once the page scrolls, so links stay legible over content. */}
-        <div
-          aria-hidden
-          className={`absolute inset-0 -z-10 border-b border-white/[0.06] bg-[#050505]/80 backdrop-blur-xl transition-opacity duration-300 ${
-            solid ? "opacity-100" : "opacity-0"
-          }`}
-        />
-        <div className="mx-auto flex h-16 w-full max-w-[90rem] items-center justify-between gap-6 px-5 sm:px-8 lg:px-10">
-          <Link href="/" className="flex shrink-0 items-center gap-3" aria-label="LumoraSpace home">
-            {/* White cut-outs of the brand mark and wordmark (public/logo-mark.png, public/logo-wordmark.png). */}
-            <Image src="/logo-mark.png" alt="" width={156} height={123} loading="eager" className="h-8 w-auto" />
-            <Image
-              src="/logo-wordmark.png"
-              alt="LumoraSpace"
-              width={998}
-              height={87}
-              loading="eager"
-              className="h-3 w-auto sm:h-3.5"
-            />
-          </Link>
+      <header
+        className={cn(
+          "sticky top-0 z-50 border-b transition-[background-color,border-color] duration-200",
+          solid ? "border-white/10 bg-[rgba(10,10,10,0.82)] backdrop-blur-xl" : "border-transparent bg-transparent",
+          sheetOpen && "bg-ls-ink backdrop-blur-none",
+        )}
+      >
+        <div ref={navRef}>
+          <div className="ls-container flex min-h-[60px] items-center justify-between gap-8 lg:min-h-[68px]">
+            <Brand onClick={closeSheet} />
 
-          <nav aria-label="Main" className="hidden min-[80rem]:block">
-            <ul className="flex items-center gap-6">
-              {DESKTOP_ITEMS.map((item) => {
-                const active = isActive(item.href, pathname)
+            <nav aria-label="Main" className="hidden items-center gap-x-2 lg:flex">
+              {MENUS.map((menu) => {
+                const open = openMenu === menu.id
+                const current = isCurrent(menu, pathname)
                 return (
-                  <li key={item.href}>
-                    <Link
-                      href={item.href}
-                      aria-current={active ? "page" : undefined}
-                      className={`relative block whitespace-nowrap py-2 font-heading text-xs font-medium uppercase tracking-[0.14em] transition-colors duration-200 ${
-                        active ? "text-headings" : "text-muted-foreground hover:text-headings"
-                      }`}
+                  <button
+                    key={menu.id}
+                    type="button"
+                    data-menu={menu.id}
+                    aria-expanded={open}
+                    aria-controls={`${uid}-${menu.id}`}
+                    onClick={() => setMenuState(open ? null : { id: menu.id, on: pathname })}
+                    className={cn(
+                      desktopItem,
+                      "cursor-pointer border-none font-[inherit]",
+                      open ? "bg-white/[0.08] text-ls-fg" : current ? "bg-transparent text-ls-fg" : "bg-transparent text-ls-body hover:text-ls-fg",
+                    )}
+                  >
+                    {menu.label}
+                    <Chevron open={open} />
+                    {current && !open && <CurrentMark />}
+                  </button>
+                )
+              })}
+              <Link
+                href="/our-story"
+                aria-current={aboutCurrent ? "page" : undefined}
+                className={cn(desktopItem, aboutCurrent ? "text-ls-fg" : "text-ls-body hover:text-ls-fg")}
+              >
+                About
+                {aboutCurrent && <CurrentMark />}
+              </Link>
+
+              {status === "loading" ? (
+                <span aria-hidden className="mx-3 h-5 w-14 rounded bg-white/[0.04]" />
+              ) : user ? (
+                <span className="ml-1 flex items-center gap-2">
+                  {user.image && (
+                    <Image src={user.image} alt="" width={28} height={28} className="h-7 w-7 rounded-full border border-white/10" />
+                  )}
+                  <span className="sr-only">Signed in as {user.name}</span>
+                  <button
+                    type="button"
+                    onClick={() => signOut({ callbackUrl: "/" })}
+                    className={cn(desktopItem, "cursor-pointer border-none bg-transparent font-[inherit] text-ls-body hover:text-ls-fg")}
+                  >
+                    Log out
+                  </button>
+                </span>
+              ) : (
+                <Link
+                  href="/signin"
+                  aria-current={matches(pathname, "/signin") ? "page" : undefined}
+                  className={cn(desktopItem, "text-ls-body hover:text-ls-fg")}
+                >
+                  Sign in
+                </Link>
+              )}
+
+              <Link href="/contact" className={buttonClass("light", "sm", "ml-2 min-h-10")}>
+                Contact
+              </Link>
+            </nav>
+
+            <button
+              ref={toggleRef}
+              type="button"
+              onClick={() => {
+                setExpanded(null)
+                setSheetOn(sheetOpen ? null : pathname)
+              }}
+              aria-expanded={sheetOpen}
+              aria-controls={`${uid}-sheet`}
+              aria-label={sheetOpen ? "Close menu" : "Open menu"}
+              className={cn(
+                "-mr-2.5 flex h-11 w-11 cursor-pointer items-center justify-center rounded-[6px] border-none text-ls-fg lg:hidden",
+                sheetOpen ? "bg-white/[0.08]" : "bg-transparent",
+              )}
+            >
+              <span aria-hidden className="relative block h-3 w-5">
+                <span className={cn("absolute left-0 top-0 h-px w-5 bg-current transition-transform duration-300", sheetOpen && "translate-y-1.5 rotate-45")} />
+                <span className={cn("absolute bottom-0 left-0 h-px w-5 bg-current transition-transform duration-300", sheetOpen && "-translate-y-1.5 -rotate-45")} />
+              </span>
+            </button>
+          </div>
+
+          {/* Desktop mega panels. Only the open one is rendered. */}
+          <div className="hidden lg:block">
+            {MENUS.map((menu) =>
+              openMenu === menu.id ? (
+                <MenuPanel key={menu.id} menu={menu} id={`${uid}-${menu.id}`} onNavigate={closeMenu} />
+              ) : null,
+            )}
+          </div>
+        </div>
+      </header>
+
+      {/* Mobile sheet: one accordion per menu, then the main actions. */}
+      <div
+        id={`${uid}-sheet`}
+        ref={sheetRef}
+        inert={!sheetOpen}
+        className={cn(
+          "fixed inset-x-0 bottom-0 top-[60px] z-40 overflow-y-auto overscroll-contain bg-ls-ink duration-200 lg:hidden",
+          sheetOpen ? "visible opacity-100 transition-opacity" : "invisible opacity-0 transition-[opacity,visibility]",
+        )}
+      >
+        <div className="ls-container flex flex-col pb-6 pt-2">
+          <nav aria-label="Menu">
+            <ul className="m-0 list-none p-0">
+              {MENUS.map((menu) => {
+                const open = expanded === menu.id
+                return (
+                  <li key={menu.id} className="border-b border-white/10">
+                    <button
+                      type="button"
+                      aria-expanded={open}
+                      aria-controls={`${uid}-m-${menu.id}`}
+                      onClick={() => setExpanded(open ? null : menu.id)}
+                      className="flex min-h-14 w-full cursor-pointer items-center justify-between border-none bg-transparent p-0 font-[inherit] text-lg font-medium text-ls-fg"
                     >
-                      {item.label}
-                      <span
-                        aria-hidden
-                        className={`absolute inset-x-0 bottom-0.5 h-px origin-left bg-headings transition-transform duration-300 ${
-                          active ? "scale-x-100" : "scale-x-0"
-                        }`}
-                      />
-                    </Link>
+                      {menu.label}
+                      <Chevron open={open} className="h-3.5 w-3.5 text-ls-faint" />
+                    </button>
+                    {open && (
+                      <div id={`${uid}-m-${menu.id}`} className="flex flex-col gap-5 pb-5">
+                        {menu.columns.map((column) => (
+                          <div key={column.heading} className="flex flex-col gap-1">
+                            <span className="pb-1 text-xs font-semibold uppercase tracking-[0.08em] text-ls-amber">{column.heading}</span>
+                            {column.links.map((link) => (
+                              <MenuLinkItem key={link.title} link={link} onNavigate={closeSheet} />
+                            ))}
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </li>
                 )
               })}
+              <li className="border-b border-white/10">
+                <Link
+                  href="/our-story"
+                  onClick={closeSheet}
+                  aria-current={aboutCurrent ? "page" : undefined}
+                  className="flex min-h-14 items-center text-lg font-medium text-ls-fg no-underline"
+                >
+                  About
+                </Link>
+              </li>
             </ul>
           </nav>
 
-          <div className="flex shrink-0 items-center gap-2 sm:gap-4">
+          <Link href="/cohorts" onClick={closeSheet} className={buttonClass("amber", "lg", "mt-6 w-full")}>
+            Explore programs
+          </Link>
+          <Link href="/contact" onClick={closeSheet} className={buttonClass("outline", "lg", "mt-3 w-full")}>
+            Contact
+          </Link>
+
+          <div className="mt-3">
             {status === "loading" ? (
-              <span aria-hidden className="hidden h-11 w-44 rounded-full bg-white/[0.04] min-[80rem]:block" />
+              <span aria-hidden className="block h-[52px] rounded-[6px] bg-white/[0.04]" />
             ) : user ? (
-              <div className="hidden items-center gap-4 min-[80rem]:flex">
-                <span className="flex items-center gap-2.5">
+              <div className="flex items-center justify-between gap-4 rounded-[6px] border border-white/10 p-2 pl-3">
+                <span className="flex min-w-0 items-center gap-3">
                   {user.image && (
-                    <Image
-                      src={user.image}
-                      alt=""
-                      width={28}
-                      height={28}
-                      className="h-7 w-7 shrink-0 rounded-full border border-white/10"
-                    />
+                    <Image src={user.image} alt="" width={32} height={32} className="h-8 w-8 shrink-0 rounded-full border border-white/10" />
                   )}
-                  <span className="hidden max-w-[9rem] truncate text-[13px] font-medium text-headings min-[90rem]:block">
-                    {user.name}
-                  </span>
+                  <span className="truncate text-[15px] font-medium text-ls-fg">{user.name}</span>
                 </span>
                 <button
                   type="button"
-                  onClick={() => signOut({ callbackUrl: "/" })}
-                  className="whitespace-nowrap py-2 font-heading text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground transition-colors hover:text-headings"
+                  onClick={() => {
+                    closeSheet()
+                    signOut({ callbackUrl: "/" })
+                  }}
+                  className={buttonClass("outline", "sm", "shrink-0 bg-transparent font-[inherit]")}
                 >
                   Log out
                 </button>
               </div>
             ) : (
-              <>
-                <Link
-                  href="/signin"
-                  className="hidden whitespace-nowrap py-2 font-heading text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground transition-colors hover:text-headings min-[80rem]:block"
-                >
-                  Sign in
-                </Link>
-                <Link
-                  href="/create-account"
-                  className={`hidden h-11 items-center whitespace-nowrap rounded-full bg-primary px-5 font-heading text-[13px] font-semibold text-primary-foreground transition-[background-color,transform] duration-200 hover:bg-secondary active:scale-[0.98] ${
-                    open ? "" : "sm:inline-flex"
-                  }`}
-                >
-                  Join LumoraSpace
-                </Link>
-              </>
+              <Link href="/signin" onClick={closeSheet} className={buttonClass("outline", "lg", "w-full")}>
+                Sign in
+              </Link>
             )}
-
-            <button
-              ref={toggleRef}
-              type="button"
-              onClick={() => setOpenOn(open ? null : pathname)}
-              aria-expanded={open}
-              aria-controls={menuId}
-              aria-label={open ? "Close menu" : "Open menu"}
-              className="-mr-2.5 flex h-11 w-11 items-center justify-center rounded-full text-headings transition-colors hover:bg-white/[0.06] min-[80rem]:hidden"
-            >
-              <span aria-hidden className="relative block h-3 w-5">
-                <span
-                  className={`absolute left-0 top-0 h-px w-5 bg-current transition-transform duration-300 ${
-                    open ? "translate-y-1.5 rotate-45" : ""
-                  }`}
-                />
-                <span
-                  className={`absolute bottom-0 left-0 h-px w-5 bg-current transition-transform duration-300 ${
-                    open ? "-translate-y-1.5 -rotate-45" : ""
-                  }`}
-                />
-              </span>
-            </button>
           </div>
-        </div>
-      </header>
 
-      {/* Opening shows the sheet at once so focus can move into it; closing keeps it visible until the fade ends. */}
-      <div
-        id={menuId}
-        ref={sheetRef}
-        inert={!open}
-        className={`fixed inset-x-0 bottom-0 top-16 z-40 overflow-y-auto overscroll-contain bg-[#050505] duration-300 min-[80rem]:hidden ${
-          open ? "visible opacity-100 transition-opacity" : "invisible opacity-0 transition-[opacity,visibility]"
-        }`}
-      >
-        <div
-          className={`container-page grid content-start gap-x-16 gap-y-12 pb-12 pt-6 transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] md:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] md:pt-12 ${
-            open ? "translate-y-0" : "-translate-y-3"
-          }`}
-        >
-          <nav aria-label="Menu">
-            <ul className="flex flex-col gap-1">
-              {NAV_ITEMS.map((item) => {
-                const active = isActive(item.href, pathname)
-                return (
-                  <li key={item.href}>
-                    <Link
-                      href={item.href}
-                      onClick={close}
-                      aria-current={active ? "page" : undefined}
-                      className={`flex min-h-12 items-center gap-4 font-fancy text-[2rem] font-light leading-[1.15] transition-colors ${
-                        active ? "text-headings" : "text-headings/60 hover:text-headings"
-                      }`}
-                    >
-                      {item.label}
-                      {active && <span aria-hidden className="h-px w-8 bg-headings/70" />}
-                    </Link>
-                  </li>
-                )
-              })}
-            </ul>
-          </nav>
-
-          <div className="flex flex-col gap-12">
-            <div>
-              {status === "loading" ? (
-                <span aria-hidden className="block h-12 rounded-full bg-white/[0.04]" />
-              ) : user ? (
-                <div className="flex items-center justify-between gap-4 rounded-2xl border border-white/[0.08] bg-[#0B0B0C] p-3 pl-4">
-                  <span className="flex min-w-0 items-center gap-3">
-                    {user.image && (
-                      <Image
-                        src={user.image}
-                        alt=""
-                        width={32}
-                        height={32}
-                        className="h-8 w-8 shrink-0 rounded-full border border-white/10"
-                      />
-                    )}
-                    <span className="truncate text-[15px] font-medium text-headings">{user.name}</span>
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      close()
-                      signOut({ callbackUrl: "/" })
-                    }}
-                    className="min-h-11 shrink-0 rounded-full border border-white/15 px-4 font-heading text-xs font-medium uppercase tracking-[0.14em] text-headings transition-colors hover:bg-white/[0.06]"
-                  >
-                    Log out
-                  </button>
-                </div>
-              ) : (
-                <div className="flex flex-col gap-3">
-                  <Link href="/create-account" onClick={close} className="btn-primary min-h-12 w-full">
-                    Join LumoraSpace
-                  </Link>
-                  <Link href="/signin" onClick={close} className="btn-secondary min-h-12 w-full">
-                    Sign in
-                  </Link>
-                </div>
-              )}
-            </div>
-
-            <div>
-              <p className="eyebrow">LumoraSpace sites</p>
-              <ul className="mt-3">
-                {ECOSYSTEM.map((site) => (
-                  <li key={site.href}>
-                    <a
-                      href={site.href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={close}
-                      className="group flex min-h-14 items-center justify-between gap-4 py-2"
-                    >
-                      <span className="min-w-0">
-                        <span className="block font-heading text-base font-medium text-headings">{site.label}</span>
-                        <span className="mt-0.5 block text-xs text-muted-foreground">{site.host}</span>
-                      </span>
-                      <ArrowUpRight
-                        aria-hidden
-                        className="h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-headings"
-                      />
-                      <span className="sr-only"> (opens in a new tab)</span>
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <div>
-              <p className="eyebrow">Contact</p>
-              <a
-                href={`mailto:${CONTACT.hello}`}
-                className="mt-2 inline-flex min-h-11 items-center text-[15px] text-headings underline decoration-white/25 underline-offset-4 transition-colors hover:decoration-white/70"
-              >
-                {CONTACT.hello}
-              </a>
-            </div>
-          </div>
+          <a
+            href={`mailto:${CONTACT.hello}`}
+            className="mt-5 self-center text-sm text-ls-faint no-underline hover:text-ls-fg"
+          >
+            {CONTACT.hello}
+          </a>
         </div>
       </div>
     </>

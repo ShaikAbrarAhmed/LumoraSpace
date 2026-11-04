@@ -23,7 +23,7 @@ export default async function JoinPage({
   return (
     <>
       <Navbar />
-      <main id="main" className="bg-background">
+      <main id="main" className="bg-ls-ink">
         <JoinClient programs={programList.map(toApplyProgram)} initialSlug={initialSlug} />
       </main>
       <Footer />

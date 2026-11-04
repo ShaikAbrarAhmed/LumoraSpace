@@ -5,6 +5,7 @@ import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { AnimatePresence, motion } from "framer-motion"
 import { useSession } from "next-auth/react"
+import { buttonClass } from "@/components/site/ui"
 
 interface MembershipContextType {
   /** Opens the "Sign in to continue" dialog and remembers `action` to replay after sign-in. */
@@ -171,12 +172,12 @@ export function MembershipProvider({ children }: { children: ReactNode }) {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 16 }}
               transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-              className="relative max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-y-auto overscroll-contain rounded-2xl border border-white/[0.08] bg-[#0B0B0C] p-6 shadow-[0_24px_80px_rgba(0,0,0,0.6)] sm:p-8"
+              className="relative max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-y-auto overscroll-contain rounded-lg border border-white/10 border-t-2 border-t-ls-amber bg-ls-ink-2 p-6 shadow-[0_24px_48px_rgba(0,0,0,0.5)] sm:p-8"
             >
-              <h2 id={titleId} className="font-fancy text-3xl font-light leading-tight text-headings sm:text-4xl">
+              <h2 id={titleId} className="m-0 text-[28px] font-semibold leading-tight tracking-[-0.025em] text-ls-fg">
                 Sign in to continue
               </h2>
-              <p id={descriptionId} className="mt-3 text-[15px] leading-relaxed text-muted-foreground">
+              <p id={descriptionId} className="m-0 mt-3 text-base">
                 {(pendingAction && MODAL_COPY[pendingAction]) || DEFAULT_MODAL_COPY}
               </p>
 
@@ -184,21 +185,21 @@ export function MembershipProvider({ children }: { children: ReactNode }) {
                 <Link
                   href="/create-account"
                   onClick={rememberPendingAction}
-                  className="flex h-12 items-center justify-center rounded-full bg-primary px-6 font-heading text-sm font-semibold text-[#050505] transition-colors duration-200 hover:bg-secondary"
+                  className={buttonClass("amber", "lg", "w-full")}
                 >
                   Join LumoraSpace
                 </Link>
                 <Link
                   href="/signin"
                   onClick={rememberPendingAction}
-                  className="flex h-12 items-center justify-center rounded-full border border-white/15 px-6 font-heading text-sm font-semibold text-headings transition-colors duration-200 hover:border-white/35 hover:bg-white/[0.04]"
+                  className={buttonClass("outline", "lg", "w-full")}
                 >
                   Sign in
                 </Link>
                 <button
                   type="button"
                   onClick={closeModal}
-                  className="h-11 rounded-full font-heading text-sm font-medium text-muted-foreground transition-colors hover:text-headings"
+                  className="min-h-11 cursor-pointer rounded-[6px] border-none bg-transparent font-[inherit] text-[15px] text-ls-faint transition-colors hover:text-ls-fg"
                 >
                   Not now
                 </button>
