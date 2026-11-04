@@ -21,11 +21,7 @@ export default async function CreateAccountPage({ searchParams }: CreateAccountP
   return (
     <>
       <Navbar />
-      <main id="main" className="relative isolate overflow-hidden bg-background">
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[36rem] bg-[radial-gradient(ellipse_70%_55%_at_50%_0%,rgba(255,255,255,0.06),transparent_70%)]"
-        />
+      <main id="main" className="bg-ls-ink">
         <CreateAccountClient welcome={mode === "welcome"} />
       </main>
       <Footer />

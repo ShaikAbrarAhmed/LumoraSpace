@@ -93,6 +93,33 @@ const nextConfig: NextConfig = {
         destination: "/programs/web-development-with-genai",
         permanent: true,
       },
+      // Pages retired in the redesign. Each now lives on one of our platforms (or, for mentors, on About).
+      // Temporary, so search engines keep checking back if a page returns.
+      {
+        source: "/hackathons",
+        destination: "https://arena.lumoraspace.in/hackathons",
+        permanent: false,
+      },
+      {
+        source: "/opportunities",
+        destination: "https://careers.lumoraspace.in",
+        permanent: false,
+      },
+      {
+        source: "/community",
+        destination: "https://chat.whatsapp.com/GgKs2Hnh8Os1XOL0pYPZMN",
+        permanent: false,
+      },
+      {
+        source: "/features",
+        destination: "https://edu.lumoraspace.in",
+        permanent: false,
+      },
+      {
+        source: "/mentors",
+        destination: "/our-story#mentors",
+        permanent: false,
+      },
       // Planned programs without pages yet: send visitors to the live list.
       {
         source: "/programs/python-builder",

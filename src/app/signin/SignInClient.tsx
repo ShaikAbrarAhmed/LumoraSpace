@@ -8,13 +8,13 @@ import { AlertCircle, Loader2 } from "lucide-react"
 import { PasswordInput } from "@/components/ui/password-input"
 import { AuthDivider, GoogleSignInButton } from "@/components/auth/SignInButton"
 import { getPostAuthRedirect } from "@/components/auth/MembershipContext"
+import { formError, formField, formFrame, formLabel } from "@/components/site/form-styles"
+import { buttonClass } from "@/components/site/ui"
 import { CONTACT } from "@/lib/site"
 
-const labelClass = "block font-heading text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground"
-const fieldClass =
-  "block h-12 w-full rounded-xl border border-white/[0.1] bg-[#111214] px-4 text-base text-headings placeholder:text-[#808080] transition-colors duration-200 hover:border-white/20 focus:border-white/60 focus:outline-none focus:ring-2 focus:ring-white/15 aria-[invalid=true]:border-red-400/70 sm:text-sm"
-
-const fieldErrorClass = "text-[13px] leading-snug text-red-300"
+const labelClass = `block ${formLabel}`
+const fieldClass = formField
+const fieldErrorClass = formError
 
 const SIGN_IN_ERRORS: Record<string, string> = {
   CredentialsSignin: "That email and password don't match an account. Check them and try again.",
@@ -102,7 +102,7 @@ export default function SignInForm({ errorCode }: { errorCode?: string }) {
 
   if (status === "authenticated") {
     return (
-      <p role="status" className="flex items-center gap-3 text-[15px] text-muted-foreground">
+      <p role="status" className={`${formFrame} m-0 flex items-center gap-3 text-[15px]`}>
         <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
         You&apos;re signed in. Taking you back…
       </p>
@@ -111,19 +111,19 @@ export default function SignInForm({ errorCode }: { errorCode?: string }) {
 
   return (
     <div>
-      <div className="sm:rounded-2xl sm:border sm:border-white/[0.08] sm:bg-[#0B0B0C] sm:p-10">
+      <div className={formFrame}>
         {error && (
           <div
             role="alert"
-            className="mb-6 flex items-start gap-3 rounded-xl border border-red-400/25 bg-red-500/[0.06] p-4 text-sm leading-relaxed text-red-200"
+            className="mb-6 flex items-start gap-3 rounded-[6px] border border-red-400/20 bg-red-500/[0.06] p-4 text-sm leading-relaxed text-red-200"
           >
             <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-300" aria-hidden />
             <span>{error}</span>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} noValidate className="space-y-6">
-          <div className="space-y-2.5">
+        <form onSubmit={handleSubmit} noValidate className="space-y-5">
+          <div className="space-y-2">
             <label htmlFor="signin-email" className={labelClass}>
               Email
             </label>
@@ -152,14 +152,14 @@ export default function SignInForm({ errorCode }: { errorCode?: string }) {
             )}
           </div>
 
-          <div className="space-y-2.5">
+          <div className="space-y-2">
             <div className="flex items-center justify-between gap-4">
               <label htmlFor="signin-password" className={labelClass}>
                 Password
               </label>
               <a
                 href={resetMailto}
-                className="-my-3 inline-block py-3 text-[13px] text-muted-foreground underline decoration-white/20 underline-offset-4 transition-colors hover:text-headings hover:decoration-white/60"
+                className="-my-3 inline-block py-3 text-sm text-ls-faint underline decoration-white/20 underline-offset-4 transition-colors hover:text-ls-fg hover:decoration-white/60"
               >
                 Forgot password?
               </a>
@@ -186,7 +186,11 @@ export default function SignInForm({ errorCode }: { errorCode?: string }) {
             )}
           </div>
 
-          <button type="submit" disabled={submitting} className="btn-primary h-12 w-full gap-2 text-[#050505] disabled:pointer-events-none disabled:opacity-70">
+          <button
+            type="submit"
+            disabled={submitting}
+            className={buttonClass("amber", "lg", "w-full border-none font-[inherit] disabled:pointer-events-none disabled:opacity-70")}
+          >
             {submitting && <Loader2 className="h-4 w-4 animate-spin" aria-hidden />}
             {submitting ? "Signing in…" : "Sign in"}
           </button>
@@ -202,11 +206,11 @@ export default function SignInForm({ errorCode }: { errorCode?: string }) {
         />
       </div>
 
-      <p className="mt-8 text-[15px] text-muted-foreground sm:text-center">
+      <p className="m-0 mt-6 text-[15px]">
         No account yet?{" "}
         <Link
           href="/create-account"
-          className="inline-flex min-h-11 items-center font-medium text-headings underline decoration-white/25 underline-offset-4 transition-colors hover:decoration-white/70"
+          className="inline-flex min-h-11 items-center font-medium text-ls-fg underline decoration-white/40 underline-offset-4 transition-colors hover:text-white hover:decoration-white"
         >
           Join LumoraSpace
         </Link>

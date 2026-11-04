@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Cormorant_Garamond, Space_Grotesk } from "next/font/google";
+import { Geist } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
 import AuthSessionProvider from "@/components/auth/AuthSessionProvider";
@@ -7,15 +7,8 @@ import { SkipLink } from "@/components/Navbar";
 import { JsonLd } from "@/lib/jsonld";
 import { CONTACT, SITE_URL, SOCIAL } from "@/lib/site";
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
-const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], variable: "--font-heading" });
-const cormorantGaramond = Cormorant_Garamond({
-  subsets: ["latin"],
-  variable: "--font-fancy",
-  weight: ["300", "400", "500", "600", "700"],
-  // The italic display lines (hero, our story, programs...) need the real italic face, not a synthetic slant.
-  style: ["normal", "italic"],
-});
+// Geist is the one typeface of the redesign: body, headings and UI. globals.css maps --font-heading to it too.
+const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
 
 const GTM_ID = "GTM-KCNSB85Z";
 
@@ -55,7 +48,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#050505",
+  themeColor: "#0A0A0A",
   colorScheme: "dark",
 };
 
@@ -84,7 +77,7 @@ export default function RootLayout({
   return (
     <html lang="en" data-scroll-behavior="smooth">
       <body
-        className={`${inter.variable} ${spaceGrotesk.variable} ${cormorantGaramond.variable} min-h-screen bg-background font-sans text-foreground antialiased selection:bg-primary/20 selection:text-foreground`}
+        className={`${geist.variable} min-h-screen bg-background font-sans text-foreground antialiased selection:bg-primary/20 selection:text-foreground`}
       >
         <SkipLink />
         <Script

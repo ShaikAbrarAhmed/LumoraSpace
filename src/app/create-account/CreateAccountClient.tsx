@@ -6,7 +6,9 @@ import { useRouter } from "next/navigation"
 import { signIn, useSession } from "next-auth/react"
 import { AlertCircle, ArrowRight, ArrowUpRight, Check, Loader2 } from "lucide-react"
 import { PasswordInput } from "@/components/ui/password-input"
-import { SectionHeading } from "@/components/ui/section-heading"
+import { FormPage } from "@/components/site/FormPage"
+import { formError, formField, formFrame, formLabel } from "@/components/site/form-styles"
+import { buttonClass } from "@/components/site/ui"
 import { AuthDivider, GoogleSignInButton } from "@/components/auth/SignInButton"
 import { getPostAuthRedirect } from "@/components/auth/MembershipContext"
 import { PASSWORD_RULES, SignupSchema, type SignupField } from "@/lib/schemas/auth"
@@ -21,17 +23,13 @@ const FIELD_ORDER: Field[] = ["name", "email", "password", "confirmPassword"]
 const fieldId = (field: Field) => `create-account-${field}`
 const errorId = (field: Field) => `${fieldId(field)}-error`
 
-const labelClass = "block font-heading text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground"
-const fieldClass =
-  "block h-12 w-full rounded-xl border border-white/[0.1] bg-[#111214] px-4 text-base text-headings placeholder:text-[#808080] transition-colors duration-200 hover:border-white/20 focus:border-white/60 focus:outline-none focus:ring-2 focus:ring-white/15 aria-[invalid=true]:border-red-400/70 sm:text-sm"
-const fieldErrorClass = "text-[13px] leading-snug text-red-300"
+const labelClass = `block ${formLabel}`
+const fieldClass = formField
+const fieldErrorClass = formError
 const textLinkClass =
-  "text-headings underline decoration-white/25 underline-offset-4 transition-colors hover:decoration-white/70"
+  "text-ls-fg underline decoration-white/40 underline-offset-4 transition-colors hover:text-white hover:decoration-white"
 
-const layoutClass =
-  "container-page page-header grid gap-8 animate-in fade-in slide-in-from-bottom-3 duration-700 ease-out sm:gap-12 lg:grid-cols-12 lg:gap-x-8"
-const headingColClass = "lg:col-span-5 lg:sticky lg:top-32 lg:self-start"
-const mainColClass = "w-full max-w-lg lg:col-span-6 lg:col-start-7 lg:max-w-none xl:col-span-5 xl:col-start-8"
+const CRUMBS = [{ label: "Home", href: "/" }, { label: "Create account" }]
 
 const NEXT_STEPS = [
   { title: "Programs", description: "See the current mentor-led programs and apply.", href: "/cohorts" },
@@ -42,8 +40,8 @@ const NEXT_STEPS = [
 
 function StatusLine({ children }: { children: ReactNode }) {
   return (
-    <div className="container-page page-header flex min-h-[60dvh] items-center">
-      <p role="status" className="flex items-center gap-3 text-[15px] text-muted-foreground">
+    <div className="ls-container flex min-h-[60dvh] items-center">
+      <p role="status" className="m-0 flex items-center gap-3 text-[15px]">
         <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
         {children}
       </p>
@@ -53,52 +51,52 @@ function StatusLine({ children }: { children: ReactNode }) {
 
 function Welcome({ email }: { email?: string | null }) {
   return (
-    <div className={layoutClass}>
-      <SectionHeading
-        as="h1"
-        title="You're in"
-        lead={
-          <>
-            Your LumoraSpace account is ready.
-            {email && (
-              <>
-                {" "}
-                Signed in as <span className="text-headings [overflow-wrap:anywhere]">{email}</span>.
-              </>
-            )}
-          </>
-        }
-        className={headingColClass}
-      />
-
-      <div className={mainColClass}>
-        <h2 className="font-heading text-lg font-medium text-headings">Where to next</h2>
-        <ul className="mt-4 border-t border-white/[0.08]">
+    <FormPage
+      crumbs={CRUMBS}
+      eyebrow="Account"
+      title="You’re in."
+      lead={
+        <>
+          Your LumoraSpace account is ready.
+          {email && (
+            <>
+              {" "}
+              Signed in as <span className="text-ls-fg [overflow-wrap:anywhere]">{email}</span>.
+            </>
+          )}
+        </>
+      }
+    >
+      <div className={formFrame}>
+        <h2 className="m-0 text-[13px] font-semibold uppercase tracking-[0.08em] text-ls-amber">Where to next</h2>
+        <ul className="m-0 mt-4 list-none border-t border-white/10 p-0">
           {NEXT_STEPS.map((step) => {
             const external = Boolean(step.host)
             const content = (
               <>
                 <span className="min-w-0">
-                  <span className="block font-heading text-lg font-medium text-headings">{step.title}</span>
-                  <span className="mt-1 block text-[15px] leading-relaxed text-muted-foreground">{step.description}</span>
-                  {step.host && <span className="mt-2 block text-xs text-muted-foreground">{step.host}</span>}
+                  <span className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
+                    <span className="text-lg font-medium text-ls-fg">{step.title}</span>
+                    {step.host && <span className="text-[13px] text-ls-faint">{step.host}</span>}
+                  </span>
+                  <span className="mt-1 block text-base">{step.description}</span>
                 </span>
                 {external ? (
                   <ArrowUpRight
                     aria-hidden
-                    className="mt-1 h-4 w-4 text-muted-foreground transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-headings"
+                    className="mt-1 h-4 w-4 text-ls-faint transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-ls-fg"
                   />
                 ) : (
                   <ArrowRight
                     aria-hidden
-                    className="mt-1 h-4 w-4 text-muted-foreground transition-transform duration-200 group-hover:translate-x-0.5 group-hover:text-headings"
+                    className="mt-1 h-4 w-4 text-ls-faint transition-transform duration-200 group-hover:translate-x-0.5 group-hover:text-ls-fg"
                   />
                 )}
               </>
             )
-            const rowClass = "group grid grid-cols-[1fr_auto] items-start gap-x-6 py-6"
+            const rowClass = "group grid grid-cols-[1fr_auto] items-start gap-x-6 py-4 no-underline"
             return (
-              <li key={step.href} className="border-b border-white/[0.08]">
+              <li key={step.href} className="border-b border-white/10">
                 {external ? (
                   <a href={step.href} target="_blank" rel="noopener noreferrer" className={rowClass}>
                     {content}
@@ -114,11 +112,11 @@ function Welcome({ email }: { email?: string | null }) {
           })}
         </ul>
 
-        <Link href="/" className="btn-secondary mt-10 h-12 w-full sm:w-auto">
+        <Link href="/" className={buttonClass("outline", "lg", "mt-8 w-full sm:w-auto")}>
           Go to the homepage
         </Link>
       </div>
-    </div>
+    </FormPage>
   )
 }
 
@@ -239,20 +237,18 @@ export default function CreateAccountClient({ welcome }: { welcome: boolean }) {
     ) : null
 
   return (
-    <div className={layoutClass}>
-      <SectionHeading
-        as="h1"
-        title="Create your account"
-        lead="Accounts are free. You don't need one to apply for a program."
-        className={headingColClass}
-      />
-
-      <div className={mainColClass}>
-        <div className="sm:rounded-2xl sm:border sm:border-white/[0.08] sm:bg-[#0B0B0C] sm:p-10">
+    <FormPage
+      crumbs={CRUMBS}
+      eyebrow="Account"
+      title="Create your account."
+      lead="Accounts are free. You don’t need one to apply for a program."
+    >
+      <div>
+        <div className={formFrame}>
           {formError && (
             <div
               role="alert"
-              className="mb-6 flex items-start gap-3 rounded-xl border border-red-400/25 bg-red-500/[0.06] p-4 text-sm leading-relaxed text-red-200"
+              className="mb-6 flex items-start gap-3 rounded-[6px] border border-red-400/20 bg-red-500/[0.06] p-4 text-sm leading-relaxed text-red-200"
             >
               <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-300" aria-hidden />
               <span>
@@ -269,8 +265,8 @@ export default function CreateAccountClient({ welcome }: { welcome: boolean }) {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} noValidate className="space-y-6">
-            <div className="space-y-2.5">
+          <form onSubmit={handleSubmit} noValidate className="space-y-5">
+            <div className="space-y-2">
               <label htmlFor={fieldId("name")} className={labelClass}>
                 Full name
               </label>
@@ -290,7 +286,7 @@ export default function CreateAccountClient({ welcome }: { welcome: boolean }) {
               {renderError("name")}
             </div>
 
-            <div className="space-y-2.5">
+            <div className="space-y-2">
               <label htmlFor={fieldId("email")} className={labelClass}>
                 Email
               </label>
@@ -312,7 +308,7 @@ export default function CreateAccountClient({ welcome }: { welcome: boolean }) {
               {renderError("email")}
             </div>
 
-            <div className="space-y-2.5">
+            <div className="space-y-2">
               <label htmlFor={fieldId("password")} className={labelClass}>
                 Password
               </label>
@@ -336,14 +332,14 @@ export default function CreateAccountClient({ welcome }: { welcome: boolean }) {
                       key={rule.id}
                       className={cn(
                         "flex items-center gap-2.5 text-[13px] transition-colors duration-200",
-                        met ? "text-headings" : "text-muted-foreground"
+                        met ? "text-ls-fg" : "text-ls-faint"
                       )}
                     >
                       <span
                         aria-hidden
                         className={cn(
                           "flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition-colors duration-200",
-                          met ? "border-white bg-white text-[#050505]" : "border-white/25"
+                          met ? "border-ls-amber bg-ls-amber text-ls-ink" : "border-white/25"
                         )}
                       >
                         {met && <Check className="h-2.5 w-2.5" strokeWidth={3.5} />}
@@ -357,7 +353,7 @@ export default function CreateAccountClient({ welcome }: { welcome: boolean }) {
               {renderError("password")}
             </div>
 
-            <div className="space-y-2.5">
+            <div className="space-y-2">
               <label htmlFor={fieldId("confirmPassword")} className={labelClass}>
                 Confirm password
               </label>
@@ -381,12 +377,12 @@ export default function CreateAccountClient({ welcome }: { welcome: boolean }) {
               <button
                 type="submit"
                 disabled={submitting}
-                className="btn-primary h-12 w-full gap-2 text-[#050505] disabled:pointer-events-none disabled:opacity-70"
+                className={buttonClass("amber", "lg", "w-full border-none font-[inherit] disabled:pointer-events-none disabled:opacity-70")}
               >
                 {submitting && <Loader2 className="h-4 w-4 animate-spin" aria-hidden />}
                 {submitting ? "Creating your account…" : "Create account"}
               </button>
-              <p className="text-[13px] leading-relaxed text-muted-foreground">
+              <p className="m-0 text-sm leading-relaxed text-ls-faint">
                 By creating an account you agree to the{" "}
                 <Link href="/terms" className={textLinkClass}>
                   Terms of service
@@ -410,16 +406,16 @@ export default function CreateAccountClient({ welcome }: { welcome: boolean }) {
           />
         </div>
 
-        <p className="mt-8 text-[15px] text-muted-foreground sm:text-center">
+        <p className="m-0 mt-6 text-[15px]">
           Already have an account?{" "}
           <Link
             href="/signin"
-            className="inline-flex min-h-11 items-center font-medium text-headings underline decoration-white/25 underline-offset-4 transition-colors hover:decoration-white/70"
+            className="inline-flex min-h-11 items-center font-medium text-ls-fg underline decoration-white/40 underline-offset-4 transition-colors hover:text-white hover:decoration-white"
           >
             Sign in
           </Link>
         </p>
       </div>
-    </div>
+    </FormPage>
   )
 }

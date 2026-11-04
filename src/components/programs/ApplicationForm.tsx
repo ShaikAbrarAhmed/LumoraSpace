@@ -2,6 +2,8 @@
 
 import { useId, useState, type ChangeEvent, type FormEvent, type ReactNode } from "react"
 import { ChevronDown } from "lucide-react"
+import { formAlert, formError, formField, formHint, formLabel } from "@/components/site/form-styles"
+import { buttonClass } from "@/components/site/ui"
 import { CONTACT } from "@/lib/site"
 import { cn } from "@/lib/utils"
 import type { ApplyProgram } from "./apply-program"
@@ -40,8 +42,7 @@ const API_FIELD: Record<string, FieldName> = {
   programSlug: "programSlug",
 }
 
-const inputClass =
-  "w-full min-w-0 rounded-xl border border-white/10 bg-[#0B0B0C] px-4 text-base text-headings placeholder:text-white/30 transition-colors hover:border-white/20 focus:border-white/50 focus:outline-none focus-visible:outline-none focus:ring-1 focus:ring-white/30 aria-[invalid=true]:border-red-400/70"
+const inputClass = `min-w-0 ${formField}`
 
 type ApplicationFormProps = {
   /** One program = fixed; several = the applicant chooses. */
@@ -175,7 +176,7 @@ export function ApplicationForm({
 
   return (
     <form onSubmit={onSubmit} className={cn("space-y-6", className)}>
-      <p className="text-sm text-muted-foreground">All fields are required unless marked optional.</p>
+      <p className="m-0 text-sm text-ls-faint">All fields are required unless marked optional.</p>
 
       {selectable && (
         <Field id={id("programSlug")} label="Program" error={fieldErrors.programSlug}>
@@ -186,7 +187,7 @@ export function ApplicationForm({
               required
               value={values.programSlug}
               onChange={onChange}
-              className={cn(inputClass, "h-12 appearance-none pr-11 [&_option]:bg-[#111214] [&_option]:text-white")}
+              className={cn(inputClass, "h-12 appearance-none pr-11 [&_option]:bg-ls-field [&_option]:text-ls-fg")}
               {...errorProps("programSlug")}
             >
               <option value="" disabled>
@@ -272,7 +273,7 @@ export function ApplicationForm({
               required
               value={values.year}
               onChange={onChange}
-              className={cn(inputClass, "h-12 appearance-none pr-11 [&_option]:bg-[#111214] [&_option]:text-white")}
+              className={cn(inputClass, "h-12 appearance-none pr-11 [&_option]:bg-ls-field [&_option]:text-ls-fg")}
               {...errorProps("year")}
             >
               <option value="" disabled>
@@ -294,7 +295,7 @@ export function ApplicationForm({
               required
               value={values.currentStatus}
               onChange={onChange}
-              className={cn(inputClass, "h-12 appearance-none pr-11 [&_option]:bg-[#111214] [&_option]:text-white")}
+              className={cn(inputClass, "h-12 appearance-none pr-11 [&_option]:bg-ls-field [&_option]:text-ls-fg")}
               {...errorProps("currentStatus")}
             >
               <option value="" disabled>
@@ -311,7 +312,7 @@ export function ApplicationForm({
       </div>
 
       <fieldset aria-describedby={fieldErrors.paymentPlan ? id("paymentPlan-error") : undefined}>
-        <legend className="mb-2 font-heading text-sm font-medium text-headings">Payment plan</legend>
+        <legend className={cn("mb-2", formLabel)}>Payment plan</legend>
         {program ? (
           <div className="grid gap-3 sm:grid-cols-2">
             {program.paymentPlans.map((plan, index) => {
@@ -319,7 +320,7 @@ export function ApplicationForm({
               return (
                 <label
                   key={plan.type}
-                  className="group relative flex cursor-pointer flex-col gap-1 rounded-xl border border-white/10 bg-[#0B0B0C] p-4 transition-colors hover:border-white/25 has-[:checked]:border-white/60 has-[:checked]:bg-white/[0.05] has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-white/60"
+                  className="group relative flex cursor-pointer flex-col gap-1 rounded-[6px] border border-white/[0.18] bg-ls-field p-4 transition-colors hover:border-white/30 has-[:checked]:border-ls-amber has-[:checked]:bg-ls-amber/[0.06] has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ls-fg"
                 >
                   <input
                     type="radio"
@@ -331,33 +332,33 @@ export function ApplicationForm({
                     className="sr-only"
                   />
                   <span className="flex items-center justify-between gap-3">
-                    <span className="font-heading text-sm font-medium text-headings">
+                    <span className="text-base font-medium text-ls-fg">
                       {split ? "Pay in instalments" : "Pay in full"}
                     </span>
                     <span
                       aria-hidden
-                      className="flex size-4 shrink-0 items-center justify-center rounded-full border border-white/30 group-has-[:checked]:border-white"
+                      className="flex size-4 shrink-0 items-center justify-center rounded-full border border-white/30 group-has-[:checked]:border-ls-amber"
                     >
-                      <span className="size-2 rounded-full bg-white opacity-0 transition-opacity group-has-[:checked]:opacity-100" />
+                      <span className="size-2 rounded-full bg-ls-amber opacity-0 transition-opacity group-has-[:checked]:opacity-100" />
                     </span>
                   </span>
                   {split && plan.schedule?.length ? (
                     <>
                       {plan.schedule.map((line) => (
-                        <span key={line} className="text-[15px] text-headings">
+                        <span key={line} className="text-[15px] text-ls-fg">
                           <Money>{line}</Money>
                         </span>
                       ))}
-                      <span className="text-sm text-muted-foreground">
+                      <span className="text-sm text-ls-faint">
                         <Money>{plan.amount}</Money> in total
                       </span>
                     </>
                   ) : (
                     <>
-                      <span className="text-[15px] text-headings">
+                      <span className="text-[15px] text-ls-fg">
                         <Money>{plan.amount}</Money>
                       </span>
-                      <span className="text-sm text-muted-foreground">{plan.description}</span>
+                      <span className="text-sm text-ls-faint">{plan.description}</span>
                     </>
                   )}
                 </label>
@@ -365,12 +366,12 @@ export function ApplicationForm({
             })}
           </div>
         ) : (
-          <p className="rounded-xl border border-dashed border-white/10 p-4 text-sm text-muted-foreground">
+          <p className="m-0 rounded-[6px] border border-dashed border-white/[0.18] p-4 text-sm text-ls-faint">
             Choose a program to see its payment plans.
           </p>
         )}
         {fieldErrors.paymentPlan && (
-          <p id={id("paymentPlan-error")} className="mt-2 text-sm text-red-300">
+          <p id={id("paymentPlan-error")} className={cn("mt-2", formError)}>
             {fieldErrors.paymentPlan}
           </p>
         )}
@@ -381,7 +382,7 @@ export function ApplicationForm({
         label="Questions for the coordinator (optional)"
         error={fieldErrors.message}
         aside={
-          <span className="text-xs tabular-nums text-muted-foreground">
+          <span className="text-xs tabular-nums text-ls-faint">
             {values.message.length}/{MESSAGE_MAX}
           </span>
         }
@@ -400,7 +401,7 @@ export function ApplicationForm({
 
       <div aria-live="polite">
         {formError && (
-          <p className="rounded-xl border border-red-400/20 bg-red-500/[0.06] px-4 py-3 text-sm leading-relaxed text-red-200">
+          <p className={formAlert}>
             {formError.split(CONTACT.support).map((part, i) =>
               i === 0 ? (
                 part
@@ -424,11 +425,11 @@ export function ApplicationForm({
         <button
           type="submit"
           disabled={submitting}
-          className="btn-primary h-12 w-full text-[15px] disabled:cursor-not-allowed disabled:opacity-60"
+          className={buttonClass("amber", "lg", "w-full border-none font-[inherit] disabled:cursor-not-allowed disabled:opacity-60")}
         >
           {submitting ? "Sending…" : "Send application"}
         </button>
-        <p className="mt-3 text-center text-sm text-muted-foreground">
+        <p className="m-0 mt-3 text-sm text-ls-faint">
           No payment is needed to apply. A program coordinator will contact you with the next steps.
         </p>
       </div>
@@ -454,19 +455,19 @@ function Field({
   return (
     <div className="min-w-0 space-y-2">
       <div className="flex items-baseline justify-between gap-3">
-        <label htmlFor={id} className="font-heading text-sm font-medium text-headings">
+        <label htmlFor={id} className={formLabel}>
           {label}
         </label>
         {aside}
       </div>
       {children}
       {hint && (
-        <p id={`${id}-hint`} className="text-xs text-muted-foreground">
+        <p id={`${id}-hint`} className={cn("m-0", formHint)}>
           {hint}
         </p>
       )}
       {error && (
-        <p id={`${id}-error`} className="text-sm text-red-300">
+        <p id={`${id}-error`} className={formError}>
           {error}
         </p>
       )}
@@ -480,7 +481,7 @@ function SelectWrap({ children }: { children: ReactNode }) {
       {children}
       <ChevronDown
         aria-hidden
-        className="pointer-events-none absolute right-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+        className="pointer-events-none absolute right-4 top-1/2 size-4 -translate-y-1/2 text-ls-faint"
       />
     </div>
   )

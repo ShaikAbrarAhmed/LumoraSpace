@@ -3,22 +3,20 @@ import { pageMetadata } from "@/lib/metadata"
 import { Navbar } from "@/components/Navbar"
 import { Footer } from "@/components/Footer"
 import { IntroScreen } from "@/components/IntroScreen"
+import { ButtonLink, ClosingCta } from "@/components/site/ui"
+import {
+  HomeHalves,
+  HomeHero,
+  HomeLoop,
+  HomeNumbers,
+  HomePeople,
+  HomeProof,
+} from "@/components/home/HomeSections"
+import { CONTACT } from "@/lib/site"
 
-import HeroSection from "@/components/sections/HeroSection"
-import { EcosystemSection } from "@/components/sections/EcosystemSection"
-import { ProblemSection } from "@/components/sections/ProblemSection"
-import { FrameworkSection } from "@/components/sections/FrameworkSection"
-import { ProgramsPreviewSection } from "@/components/sections/ProgramsPreviewSection"
-import { ArenaSection } from "@/components/sections/ArenaSection"
-import { OpportunitiesPreviewSection } from "@/components/sections/OpportunitiesPreviewSection"
-import { ServicesPreviewSection } from "@/components/sections/ServicesPreviewSection"
-import { MentorsPreviewSection } from "@/components/sections/MentorsPreviewSection"
-import { CommunityPreviewSection } from "@/components/sections/CommunityPreviewSection"
-import { CTASection } from "@/components/sections/CTASection"
-
-const title = "LumoraSpace | From Confused to Confident"
+const title = "LumoraSpace | Tech training for students. Software for businesses."
 const description =
-  "Mentor-led programs, hackathons and internships that take students from confused to confident. LumoraSpace also builds software and AI for businesses."
+  "Students learn from working engineers and build on real projects. Businesses hire that same team to build their web, AI and cloud software."
 
 // The home title is the brand line itself, so it skips the layout's " | LumoraSpace" template.
 export const metadata: Metadata = {
@@ -31,18 +29,21 @@ export default function Home() {
     <>
       <IntroScreen />
       <Navbar />
-      <main id="main" className="flex min-h-screen flex-col bg-background">
-        <HeroSection />
-        <EcosystemSection />
-        <ProblemSection />
-        <FrameworkSection />
-        <ProgramsPreviewSection />
-        <ArenaSection />
-        <OpportunitiesPreviewSection />
-        <ServicesPreviewSection />
-        <MentorsPreviewSection />
-        <CommunityPreviewSection />
-        <CTASection />
+      <main id="main" className="flex min-h-screen flex-col bg-ls-ink">
+        <HomeHero />
+        <HomeHalves />
+        <HomeLoop />
+        <HomeNumbers />
+        <HomeProof />
+        <HomePeople />
+        <div className="border-t border-white/10">
+          <ClosingCta
+            size="home"
+            title="Whichever side you’re on, start with a conversation."
+            body={`Students, businesses and colleges all reach the same team at ${CONTACT.hello}.`}
+            action={<ButtonLink href="/contact">Contact us</ButtonLink>}
+          />
+        </div>
       </main>
       <Footer />
     </>

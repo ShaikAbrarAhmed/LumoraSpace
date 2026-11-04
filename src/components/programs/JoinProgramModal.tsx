@@ -5,6 +5,7 @@ import { createPortal } from "react-dom"
 import { AnimatePresence, motion } from "framer-motion"
 import { X } from "lucide-react"
 import { ApplicationForm, type ApplyProgram } from "./ApplicationForm"
+import { buttonClass } from "@/components/site/ui"
 import { Money } from "./money"
 
 type JoinProgramModalProps = {
@@ -112,18 +113,18 @@ function Dialog({ onClose, program }: { onClose: () => void; program: ApplyProgr
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 32 }}
         transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-        className="relative flex max-h-[calc(100dvh-1rem)] w-full flex-col overflow-hidden rounded-t-2xl border border-white/10 bg-[#08080A] shadow-2xl outline-none sm:max-h-[calc(100dvh-3rem)] sm:max-w-xl sm:rounded-2xl"
+        className="relative flex max-h-[calc(100dvh-1rem)] w-full flex-col overflow-hidden rounded-t-lg border border-white/10 border-t-2 border-t-ls-amber bg-ls-ink-2 shadow-[0_24px_48px_rgba(0,0,0,0.5)] outline-none sm:max-h-[calc(100dvh-3rem)] sm:max-w-xl sm:rounded-lg"
       >
-        <div className="flex items-start justify-between gap-4 border-b border-white/[0.08] px-5 py-5 sm:px-8">
+        <div className="flex items-start justify-between gap-4 border-b border-white/10 px-5 py-5 sm:px-8">
           <div className="min-w-0">
-            <p className="eyebrow">{submitted ? "Application sent" : "Apply"}</p>
+            <p className="m-0 text-sm font-semibold uppercase tracking-[0.1em] text-ls-amber">{submitted ? "Application sent" : "Apply"}</p>
             <h2
               id={titleId}
-              className="mt-2 font-fancy text-2xl font-light leading-tight text-headings text-balance sm:text-3xl"
+              className="m-0 mt-2 text-2xl font-semibold leading-tight tracking-[-0.025em] text-ls-fg text-balance sm:text-[28px]"
             >
               {program.title}
             </h2>
-            <p id={descId} className="mt-1 text-sm text-muted-foreground">
+            <p id={descId} className="m-0 mt-1 text-[15px] text-ls-faint">
               {program.duration} · <Money>{program.fee}</Money>
             </p>
           </div>
@@ -131,7 +132,7 @@ function Dialog({ onClose, program }: { onClose: () => void; program: ApplyProgr
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="-mr-2 flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-white/10 hover:text-headings"
+            className="-mr-2 flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-[6px] border-none bg-transparent text-ls-faint transition-colors hover:bg-white/[0.08] hover:text-ls-fg"
           >
             <X className="size-5" aria-hidden />
           </button>
@@ -140,12 +141,12 @@ function Dialog({ onClose, program }: { onClose: () => void; program: ApplyProgr
         <div className="overflow-y-auto overscroll-contain px-5 py-6 sm:px-8 sm:py-8">
           {submitted ? (
             <div role="status" className="py-6">
-              <p className="font-fancy text-3xl font-light text-headings">Application received.</p>
-              <p className="mt-4 text-[15px] leading-relaxed text-muted-foreground sm:text-base">
+              <p className="m-0 text-[28px] font-semibold tracking-[-0.025em] text-ls-fg">Application received.</p>
+              <p className="m-0 mt-4 text-base">
                 Thank you. A program coordinator will contact you shortly to confirm your payment plan and complete
                 your enrollment.
               </p>
-              <button type="button" onClick={onClose} className="btn-secondary mt-8 h-12 w-full sm:w-auto">
+              <button type="button" onClick={onClose} className={buttonClass("outline", "lg", "mt-8 w-full bg-transparent font-[inherit] sm:w-auto")}>
                 Close
               </button>
             </div>
